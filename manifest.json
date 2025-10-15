@@ -20,9 +20,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Shortcut 1",
-      "short_name": "Short 1",
-      "description": "Description for shortcut 1",
+      "name": "Take Assement",
+      "short_name": "Take Assement",
+      "description": "Take Assement",
       "url": "/shortcut1",
       "icons": [{ "src": "images/app.png", "sizes": "96x96" }]
     }
