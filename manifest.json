@@ -2,7 +2,7 @@
   "name": "SwasthyaMarg",
   "short_name": "SwasthyaMarg",
   "description": "SwasthyaMarg Yoga",
-  "start_url": "/",
+  "start_url": "https://uxsuresh.github.io/art/app.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#128896",
