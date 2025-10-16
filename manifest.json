@@ -2,7 +2,7 @@
   "name": "SwasthyaMarg",
   "short_name": "SwasthyaMarg",
   "description": "SwasthyaMarg Yoga",
-  "start_url": "app.html",
+  "start_url": "app1.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#128896",
