@@ -11,13 +11,32 @@
 		<meta name="keywords" content="UX consultant, UX design portfolio, user experience consultant, product strategy, user research, wireframing, prototyping, usability testing, interaction design, information architecture, conversion rate optimization, user journey mapping, UI design, Figma, Adobe XD, heuristic evaluation, persona development, information architecture, user-centered design, product design, consulting, strategy, user behavior, UX audit, interaction design, SaaS, mobile app design, web design, accessibility, wireframes, user testing, user experience strategy, UX research. " />
  
     <style>
-        /* --- Base & Reset --- */
+        /* --- Base, Reset & Fluid Variables (Mobile-First) --- */
         :root {
             --bg-color: #050505;
             --surface-color: #111111;
             --text-main: #f0f0f0;
             --text-muted: #888888;
-            --accent: #ff7b00; /* Neon green accent for AI vibe */
+            --accent: #ff3300; /* Neon green accent for AI vibe */
+            
+            /* Fluid Typography and Responsive Spacing */
+            --fluid-hero-text: clamp(2.5rem, 8vw, 10rem);
+            --fluid-section-title: clamp(2rem, 5vw, 6rem);
+            --fluid-bento-title: clamp(1.8rem, 4vw, 2.5rem);
+            --fluid-parallax-text: clamp(2rem, 6vw, 8rem);
+            
+            /* Section Paddings */
+            --section-padding-m: 10rem 1.5rem 6rem; /* Mobile top-heavy */
+            --section-padding-d: 12rem 4rem 10rem; /* Desktop balanced */
+            
+            /* Bento Grid Scaling */
+            --bento-padding-m: 1.5rem;
+            --bento-padding-d: 3rem;
+            --bento-gap-m: 1rem;
+            --bento-gap-d: 2rem;
+            
+            /* Performance Easing */
+            --ease: cubic-bezier(0.165, 0.84, 0.44, 1);
         }
 
         * {
@@ -32,61 +51,73 @@
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+            font-size: 16px; /* Base size */
         }
 
         /* --- Typography --- */
         h1, h2, h3, .display-text {
             font-family: 'Anton', sans-serif;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             font-weight: normal;
         }
-
-        /* --- Navigation --- */
+main{
+    padding-top: 24px;
+}
+        /* --- Navigation (Responsive) --- */
         nav {
             position: fixed;
             top: 0;
             width: 100%;
-            padding: 1rem 4rem;
+            padding: 1rem 1.5rem; /* Mobile padding */
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
-            /* mix-blend-mode: difference; */
-            backdrop-filter: blur(10.5px);
-           
+            background-color: rgba(5, 5, 5, 0.9); /* Opaque on mobile */
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .logo { font-size: 1.5rem; font-weight: 600; font-family: 'Inter'; letter-spacing: -1px; text-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        @media (min-width: 1024px) { nav { padding: 1rem 4rem; background-color: transparent; border: none; } }
+
+        .logo { font-size: 1.2rem; font-weight: 600; font-family: 'Inter'; letter-spacing: -1px; text-transform: none; text-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .contact-btn {
             background: var(--text-main);
             color: var(--bg-color);
-            padding: 0.8rem 1.5rem;
+            padding: 0.6rem 1.2rem;
             border-radius: 50px;
             text-decoration: none;
             font-weight: 600;
-            transition: transform 0.3s ease;
+            font-size: 0.9rem;
+            transition: transform 0.3s var(--ease);
         }
         .contact-btn:hover { transform: scale(1.05); }
 
-        /* --- Hero Section --- */
+        /* --- Hero Section (Centered Mobile, Left Desktop) --- */
         .hero {
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 0 4rem;
+            padding: var(--section-padding-m);
+            padding-top: 12rem; /* Ensure space for fixed nav */
             position: relative;
+            text-align: center;
         }
 
+        @media (min-width: 1024px) { .hero { text-align: left; padding: var(--section-padding-d); padding-top: 0rem; } }
+
         .hero h1 {
-            font-size: clamp(4rem, 10vw, 12rem);
-            line-height: 0.9;
-            margin-bottom: 1rem;
+            font-size: var(--fluid-hero-text);
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
             color: transparent;
             -webkit-text-stroke: 1px var(--text-main);
             position: relative;
+            will-change: transform;
         }
+        @media (max-width: 600px) { .hero h1 { -webkit-text-stroke: 0.5px var(--text-main); } } /* Lighter stroke on mobile */
 
         .hero h1 span {
             color: var(--text-main);
@@ -94,56 +125,80 @@
         }
 
         .hero p {
-            font-size: 1.2rem;
+            font-size: 1rem;
             color: var(--text-muted);
             max-width: 500px;
-            margin-top: 2rem;
-            line-height: 1.6;
+            margin: 1.5rem auto 0; /* Auto center on mobile */
+            line-height: 1.5;
+            padding: 0 1rem;
         }
+        @media (min-width: 1024px) { .hero p { margin-left: 0; font-size: 1.2rem; padding: 0; line-height: 1.6; } }
 
-        /* Ambient glowing SVG background in Hero */
+        /* Ambient glowing background (Simplified Mobile Performance) */
         .ambient-bg {
             position: absolute;
             top: 50%;
-            right: 10%;
-            transform: translateY(-50%);
-            width: 600px;
-            height: 600px;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 250px;
+            height: 250px;
             z-index: -1;
-            filter: blur(80px);
-            opacity: 0.4;
+            filter: blur(50px);
+            opacity: 0.2;
             background: radial-gradient(circle, var(--accent) 0%, rgba(0,255,157,0) 70%);
-            animation: pulse 8s infinite alternate;
+            will-change: transform, opacity;
+            animation: pulseMobile 10s infinite alternate var(--ease);
+        }
+        @media (min-width: 1024px) { 
+            .ambient-bg { 
+                width: 600px; 
+                height: 600px; 
+                left: auto;
+                right: 10%; 
+                opacity: 0.4;
+                filter: blur(80px);
+                animation: pulseDesktop 8s infinite alternate var(--ease);
+            } 
         }
 
-        @keyframes pulse {
+        @keyframes pulseMobile {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.1; }
+            100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.3; }
+        }
+        @keyframes pulseDesktop {
             0% { transform: translateY(-50%) scale(1); opacity: 0.3; }
             100% { transform: translateY(-50%) scale(1.2); opacity: 0.6; }
         }
 
-        /* --- Infinite Marquee (Hardware Accelerated) --- */
+        /* --- Infinite Marquee (GPU Accelerated) --- */
         .marquee-wrapper {
             background: var(--accent);
             color: var(--bg-color);
-            padding: 1rem 0;
+            padding: 0.8rem 0;
             overflow: hidden;
             white-space: nowrap;
             display: flex;
-            transform: rotate(-2deg) translateY(50px);
+            transform: rotate(-1deg) translateY(20px);
             width: 105%;
-            margin-left: -2%;
+            margin-left: -2.5%;
+            margin-bottom: 2rem;
+            z-index: 10;
         }
+        @media (min-width: 768px) { .marquee-wrapper { transform: rotate(-2deg) translateY(50px); padding: 1rem 0; margin-bottom: 4rem; } }
 
         .marquee-content {
             font-family: 'Anton', sans-serif;
-            font-size: 3rem;
+            font-size: 1.5rem;
             display: flex;
-            animation: scrollMarquee 20s linear infinite;
+            animation: scrollMarquee 25s linear infinite;
+            will-change: transform;
         }
+        @media (min-width: 768px) { .marquee-content { font-size: 3rem; animation: scrollMarquee 20s linear infinite; } }
 
         .marquee-content span {
-            margin-right: 2rem;
+            margin-right: 1.5rem;
         }
+        @media (min-width: 768px) { .marquee-content span { margin-right: 2rem; } }
 
         @keyframes scrollMarquee {
             0% { transform: translateX(0); }
@@ -151,57 +206,68 @@
         }
 
         /* --- Services / Skills Bento Grid --- */
-        .section-padding { padding: 10rem 4rem; }
+        .section-padding { padding: var(--section-padding-m); }
+        @media (min-width: 1024px) { .section-padding { padding: var(--section-padding-d); } }
         
         .section-title {
-            font-size: clamp(3rem, 6vw, 6rem);
-            margin-bottom: 4rem;
+            font-size: var(--fluid-section-title);
+            margin-bottom: 2rem;
             border-bottom: 1px solid #333;
-            padding-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            text-align: center;
         }
+        @media (min-width: 1024px) { .section-title { margin-bottom: 4rem; text-align: left; padding-bottom: 1rem; } }
 
         .bento-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(1, 1fr); /* 1 Column Mobile */
+            gap: var(--bento-gap-m);
         }
+        @media (min-width: 600px) { .bento-grid { grid-template-columns: repeat(2, 1fr); gap: var(--bento-gap-d); } } /* 2 Column Tablet */
+        @media (min-width: 1024px) { .bento-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); } } /* Auto Column Desktop */
 
         .bento-card {
             background: var(--surface-color);
             border: 1px solid #222;
-            padding: 3rem;
-            border-radius: 20px;
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), background 0.4s ease;
+            padding: var(--bento-padding-m);
+            border-radius: 15px;
+            transition: transform 0.4s var(--ease), background 0.4s ease, border-color 0.4s ease;
+            will-change: transform;
+            text-align: center;
         }
+        @media (min-width: 1024px) { .bento-card { border-radius: 20px; text-align: left; padding: var(--bento-padding-d); } }
 
         .bento-card:hover {
-            transform: translateY(-10px);
+            transform: translateY(-8px);
             background: #1a1a1a;
             border-color: #333;
         }
 
         .bento-card h3 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
+            font-size: var(--fluid-bento-title);
+            margin-bottom: 0.8rem;
             color: var(--accent);
         }
 
         .bento-card p {
             color: var(--text-muted);
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 0.95rem;
+            line-height: 1.5;
         }
+        @media (min-width: 1024px) { .bento-card p { font-size: 1.1rem; line-height: 1.6; } }
 
-        /* --- Parallax Image Section --- */
+        /* --- Parallax Image Section (Simplified Mobile-First) --- */
         .parallax-container {
             position: relative;
-            height: 80vh;
+            height: 60vh;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 5rem 0;
+            margin: 3rem 0;
+            padding: 0 1rem;
         }
+        @media (min-width: 1024px) { .parallax-container { height: 80vh; margin: 5rem 0; padding: 0; } }
 
         .parallax-image {
             position: absolute;
@@ -209,43 +275,55 @@
             left: 0;
             width: 100%;
             height: 130%; /* Taller than container for parallax effect */
-            background-image: url('https://images.unsplash.com/photo-1576595580361-90a855b84b20?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'); /* Using the image generated earlier */
+            background-image: url('https://images.unsplash.com/photo-1576595580361-90a855b84b20?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'); /* The original complex image generated earlier */
             background-size: cover;
             background-position: center;
-            background-attachment: fixed; /* Native CSS Parallax - Zero lag! */
             z-index: -1;
             filter: brightness(0.6);
+            will-change: transform;
         }
 
         .parallax-text {
             font-family: 'Anton', sans-serif;
-            font-size: clamp(3rem, 8vw, 8rem);
+            font-size: var(--fluid-parallax-text);
             text-align: center;
             text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            color: var(--text-main);
         }
 
         /* --- Footer --- */
         footer {
-            padding: 5rem 4rem;
+            padding: 5rem 1rem;
             text-align: center;
             border-top: 1px solid #222;
         }
+        @media (min-width: 1024px) { footer { padding: 8rem 4rem; } }
 
         .huge-contact {
-            font-size: clamp(3rem, 8vw, 10rem);
+            font-size: clamp(3rem, 10vw, 10rem);
             display: block;
             text-decoration: none;
             color: var(--text-main);
             transition: color 0.3s ease;
+            font-family: 'Anton', sans-serif;
+            text-transform: uppercase;
+            line-height: 0.9;
         }
-
         .huge-contact:hover { color: var(--accent); }
+
+        .footnote {
+            margin-top: 4rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
         /* --- High Performance Scroll Reveal Classes --- */
         .reveal {
             opacity: 0;
             transform: translateY(40px);
-            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+            transition: opacity 1s var(--ease), transform 1s var(--ease);
             will-change: opacity, transform; /* Hints browser to GPU accelerate */
         }
 
@@ -254,90 +332,94 @@
             transform: translateY(0);
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            nav, .hero, .section-padding { padding-left: 1.5rem; padding-right: 1.5rem; }
-            .ambient-bg { width: 300px; height: 300px; right: -50px; }
-            .bento-card { padding: 2rem; }
-        }
+        /* Subtle stagger delays for grid items */
+        .bento-grid > :nth-child(2) { transition-delay: 0.1s; }
+        .bento-grid > :nth-child(3) { transition-delay: 0.2s; }
+        .bento-grid > :nth-child(4) { transition-delay: 0.3s; }
+
     </style>
 </head>
 <body>
 
     <nav>
         <div class="logo">Suresh Gugal</div>
-        <a href="#contact" class="contact-btn">Let's Talk</a>
+        <a href="#contact" class="contact-btn">Get In Touch</a>
     </nav>
 
-    <section class="hero">
-        <div class="ambient-bg"></div>
-        <h1 class="reveal">AI <span>ORCHESTRATION</span></h1>
-        <h1 class="reveal" style="transition-delay: 0.1s;">& CREATIVE UX</h1>
-        <p class="reveal" style="transition-delay: 0.2s;">
-            I am a software engineer focused on teaching agents to build enterprise applications. I blend advanced coding skills with Generative AI (Midjourney/Stable Diffusion) and Figma to create wonderful, intelligent visual experiences.
-        </p>
-    </section>
+    <main>
+        <section class="hero" id="home">
+            <div class="ambient-bg"></div>
+            <h1 class="reveal">AI <span>ORCHESTRATION</span></h1>
+            <h1 class="reveal" style="transition-delay: 0.2s;">& CREATIVE UX</h1>
+            <p class="reveal" style="transition-delay: 0.4s;">
+                Bengaluru-based UX designer and Software Engineer + AI Architect. I teach agents to build enterprise applications and blend advanced coding with Gen AI (Midjourney/Stable Diffusion) and Figma for superior visual experiences.
+            </p>
+        </section>
 
-    <div class="marquee-wrapper reveal">
-        <div class="marquee-content">
-            <span>TEACHING AGENTS ✦ WORKFLOW AUTOMATION ✦ FIGMA & UX ✦ GEN AI EXPERIENCES ✦ ENTERPRISE APPS ✦</span>
-            <span>TEACHING AGENTS ✦ WORKFLOW AUTOMATION ✦ FIGMA & UX ✦ GEN AI EXPERIENCES ✦ ENTERPRISE APPS ✦</span>
+        <div class="marquee-wrapper reveal">
+            <div class="marquee-content">
+                <span>AGENT TEACHING ✦ WORKFLOW AUTOMATION ✦ FIGMA & UX ✦ GEN AI EXPERIENCES ✦ ENTERPRISE APPS ✦</span>
+                <span>AGENT TEACHING ✦ WORKFLOW AUTOMATION ✦ FIGMA & UX ✦ GEN AI EXPERIENCES ✦ ENTERPRISE APPS ✦</span>
+            </div>
         </div>
-    </div>
+        <section class="section-padding" id="skills">
+            <h2 class="section-title reveal">Core Expertise</h2>
+            <div class="bento-grid">
+                
+                <div class="bento-card reveal">
+                    <h3>01. AI Orchestration</h3>
+                    <p>Teaching autonomous agents to execute complex tasks, build enterprise-grade applications, and automate robust workflows securely.</p>
+                </div>
 
-    <section class="section-padding" id="services">
-        <h2 class="section-title reveal">My Expertise</h2>
-        <div class="bento-grid">
-            
-            <div class="bento-card reveal">
-                <h3>01. AI Orchestration</h3>
-                <p>Teaching autonomous agents to execute complex tasks, build enterprise-grade applications, and automate robust workflows securely.</p>
+                <div class="bento-card reveal">
+                    <h3>02. Advanced Coding</h3>
+                    <p>Expertise in full-stack architecture, focusing on clean, scalable code in [Python/TypeScript/etc.] to integrate AI logic into reliable software.</p>
+                </div>
+
+                <div class="bento-card reveal">
+                    <h3>03. Gen AI Engineer</h3>
+                    <p>Leveraging Stable Diffusion, Midjourney, andCustom LLMs to generate high-fidelity creative content and highly personalized user experiences.</p>
+                </div>
+ <a href="https://uxsuresh.github.io/art/index1.html#projects" target="_blank" style="text-decoration: none; color: inherit;">
+                <div class="bento-card reveal">
+                    <h3>04. Figma & UX</h3>
+                    <p>Designing intuitive, minimalist, and emotionally connected interfaces, ensuring high engagement and seamless experiences across all touchpoints.</p>
+                </div></a>
+
             </div>
+        </section>
 
-            <div class="bento-card reveal" style="transition-delay: 0.1s;">
-                <h3>02. Gen AI Engineering</h3>
-                <p>Leveraging Stable Diffusion, Midjourney, and Custom LLMs to generate breathtaking visual content and highly personalized user experiences.</p>
-            </div>
+        <section class="parallax-container reveal">
+            <div class="parallax-image"></div>
+            <div class="parallax-text">BUILD YOUR FUTURE</div>
+        </section>
 
-            <div class="bento-card reveal" style="transition-delay: 0.2s;">
-                <h3>03. Advanced Coding</h3>
-                <p>Transforming complex AI logic into clean, scalable software architecture. Focus on performance, security, and seamless API integrations.</p>
-            </div>
+    </main>
 
-            <a href="https://uxsuresh.github.io/art/index1.html#projects" target="_blank" style="text-decoration: none; color: inherit;">
-            <div class="bento-card reveal" style="transition-delay: 0.3s;">
-                <h3>04. UX / Figma</h3>
-                <p>Designing intuitive, minimalist, and emotionally connected user interfaces using modern design tools. From wireframes to high-fidelity interactive prototypes.</p>
-            </div></a>
-
-        </div>
-    </section>
-
-    <section class="parallax-container reveal">
-        <div class="parallax-image"></div>
-        <div class="parallax-text">BUILD YOUR FUTURE</div>
-    </section>
-
-    <footer id="contact" class="section-padding">
-        <p class="reveal" style="color: var(--accent); font-family: 'Anton'; font-size: 2rem; margin-bottom: 1rem;">READY TO HIRE?</p>
-        <a href="mailto:sureshart@gmail.com" class="huge-contact reveal">LET'S WORK</a>
-        <p style="margin-top: 4rem; color: #555;">© 2026 Suresh Gugal. Based in India.</p>
+    <footer id="contact">
+        <p class="reveal" style="color: var(--accent); font-family: 'Anton'; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px;">READY TO HIRE? LET'S</p>
+        <a href="mailto:sureshart@gmail.com" class="huge-contact reveal">TALK</a>
+        <br>
+        <a href="callto:+919886363349" class="huge-contact reveal">Connect</a>
+        <div class="footnote reveal">Bengaluru, Karnataka, India</div>
+        <div class="footnote reveal" style="margin-top: 1rem; color: #333; text-transform: none; letter-spacing: 0;">© 2026 Suresh Gugal. UX/I Architect + AI Orchestrator</div>
     </footer>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Setup Intersection Observer for high-performance scroll triggers
+            
+            // --- 1. Intersection Observer for High-Performance Scroll Triggers ---
             const observerOptions = {
                 root: null,
                 rootMargin: '0px',
-                threshold: 0.15 // Triggers when 15% of element is visible
+                threshold: 0.1 // Triggers when 10% of element is visible for smooth flow
             };
 
             const observer = new IntersectionObserver((entries, observer) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('active');
-                        // Optional: stop observing once revealed
+                        // Optional: stop observing once revealed to reduce CPU load
                         observer.unobserve(entry.target); 
                     }
                 });
@@ -346,6 +428,40 @@
             // Select all elements with the 'reveal' class and observe them
             const revealElements = document.querySelectorAll('.reveal');
             revealElements.forEach(el => observer.observe(el));
+
+
+            // --- 2. High-Performance Parallax Effect using requestAnimationFrame (for desktop) ---
+            const parallaxContainer = document.querySelector('.parallax-container');
+            const parallaxImage = document.querySelector('.parallax-image');
+            
+            // Basic performance check: Only run parallax logic on desktop screens (>=1024px)
+            if (window.innerWidth >= 1024) {
+                
+                let ticking = false;
+
+                window.addEventListener('scroll', () => {
+                    if (!ticking) {
+                        window.requestAnimationFrame(() => {
+                            updateParallax();
+                            ticking = false;
+                        });
+                        ticking = true;
+                    }
+                });
+
+                function updateParallax() {
+                    const rect = parallaxContainer.getBoundingClientRect();
+                    // Only calculate if the container is currently in the viewport
+                    if (rect.top <= window.innerHeight && rect.bottom >= 0) {
+                        // Calculate offset relative to the page and container (adjust 0.4 for intensity)
+                        const offset = (window.pageYOffset - parallaxContainer.offsetTop) * 0.4; 
+                        parallaxImage.style.transform = `translateY(${offset}px)`;
+                    }
+                }
+                
+                // Initial call to set position on page load
+                updateParallax();
+            }
         });
     </script>
 </body>
