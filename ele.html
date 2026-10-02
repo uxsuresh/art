@@ -1,1 +1,2006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JanSetu — Constituency Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={theme:{extend:{
+  colors:{brand:{50:'#f0fdfa',100:'#ccfbf1',200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',500:'#14b8a6',600:'#0d9488',700:'#0f766e',800:'#115e59',900:'#134e4a',950:'#042f2e'}},
+  fontFamily:{sans:['"Plus Jakarta Sans"','ui-sans-serif','system-ui','sans-serif'],mono:['"JetBrains Mono"','ui-monospace','monospace']},
+  boxShadow:{soft:'0 1px 2px rgba(15,23,42,.04), 0 8px 24px -14px rgba(15,23,42,.14)',lift:'0 4px 8px -2px rgba(15,23,42,.06), 0 20px 40px -20px rgba(15,23,42,.28)'}
+}}}
+</script>
+<style type="text/tailwindcss">
+  .card{@apply rounded-2xl bg-white ring-1 ring-slate-200/70 shadow-soft;}
+  .btn-p{@apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold h-10 px-4 shadow-sm transition-all duration-150 active:scale-[.98];}
+  .btn-o{@apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-white ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-bold h-10 px-4 transition-all duration-150 active:scale-[.98];}
+  .btn-s{@apply inline-flex items-center justify-center gap-1 rounded-lg text-xs font-bold h-8 px-3 transition-colors active:scale-[.97];}
+  .th{@apply px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wider text-slate-400 whitespace-nowrap;}
+  .td{@apply px-4 py-3 align-middle whitespace-nowrap;}
+  .inp{@apply h-10 rounded-xl bg-slate-100/70 border border-transparent px-3.5 text-sm outline-none focus:bg-white focus:border-teal-500/40 focus:ring-4 focus:ring-teal-500/10 transition-all;}
+  .sechead{@apply text-[11px] font-extrabold uppercase tracking-[0.12em] text-slate-400;}
+  .badge{@apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ring-1 ring-inset;}
+</style>
+<style>
+  [x-cloak]{display:none!important}
+  *{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+  ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::selection{background:#99f6e4}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .rise{animation:rise .6s cubic-bezier(.16,1,.3,1) both}
+  @keyframes vin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .view-in{animation:vin .45s cubic-bezier(.16,1,.3,1) both}
+  @keyframes tin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+  .toast-in{animation:tin .25s ease-out both}
+  .dotgrid{background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:18px 18px}
+</style>
+<script defer src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/apexcharts@3.54.1/dist/apexcharts.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 antialiased" x-data="app()">
 
+<!-- safelist for dynamically-bound classes -->
+<div class="hidden" aria-hidden="true">border-emerald-200 bg-emerald-50/50 hover:border-emerald-400/70 border-amber-200 bg-amber-50/50 hover:border-amber-400/70 border-rose-200 bg-rose-50/50 hover:border-rose-400/70 bg-emerald-500 bg-amber-500 bg-rose-500 bg-emerald-100 text-emerald-700 bg-amber-100 text-amber-700 bg-rose-100 text-rose-700 bg-emerald-50 text-emerald-700 ring-emerald-600/20 bg-amber-50 text-amber-700 ring-amber-600/20 bg-rose-50 text-rose-700 ring-rose-600/20 bg-rose-100 text-rose-700 bg-amber-100 text-amber-700 bg-slate-100 text-slate-600 bg-slate-100 text-slate-500 bg-teal-50 text-teal-600 bg-emerald-50 text-emerald-600 bg-amber-50 text-amber-600 bg-rose-50 text-rose-600 bg-violet-50 text-violet-600 bg-sky-50 text-sky-600 bg-amber-400/15 text-amber-300 bg-sky-400/15 text-sky-300 bg-emerald-400/15 text-emerald-300 bg-teal-100 text-teal-700 bg-violet-100 text-violet-700 bg-amber-100 text-amber-700 bg-sky-100 text-sky-700 bg-teal-500 bg-violet-500 bg-sky-500 bg-teal-700 bg-amber-700 text-teal-700 text-amber-600 text-rose-600 text-emerald-600 text-amber-500 text-orange-600 text-slate-400 text-amber-400 fill-amber-400 text-slate-200 bg-teal-600</div>
+
+<!-- mobile sidebar backdrop -->
+<div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden" x-show="mobileNav" x-cloak x-transition.opacity @click="mobileNav=false"></div>
+
+<!-- ============ SIDEBAR ============ -->
+<aside class="fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200/80 flex flex-col transition-all duration-300 -translate-x-full lg:translate-x-0"
+  :class="[(collapsed ? 'lg:w-[76px]' : 'lg:w-[264px]'), (mobileNav ? 'translate-x-0 w-[264px]' : '')]">
+  <div class="h-16 flex items-center gap-2.5 px-4 border-b border-slate-200/70 shrink-0">
+    <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-500 grid place-items-center text-white shadow-sm shrink-0"><i data-lucide="vote" class="w-5 h-5"></i></div>
+    <div class="min-w-0" :class="collapsed && 'lg:hidden'">
+      <div class="font-extrabold tracking-tight text-slate-900 leading-4">JanSetu</div>
+      <div class="text-[9.5px] text-slate-400 font-bold tracking-[0.16em] uppercase">Constituency Intelligence</div>
+    </div>
+    <button class="ml-auto lg:hidden h-8 w-8 grid place-items-center rounded-lg text-slate-400 hover:bg-slate-100" @click="mobileNav=false"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <nav class="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+    <template x-for="g in ['Overview','Analytics','Operations','Workspace']" :key="g">
+      <div>
+        <div class="px-3 mb-1.5 sechead" :class="collapsed && 'lg:hidden'" x-text="g"></div>
+        <div class="space-y-0.5">
+          <template x-for="it in nav.filter(n=>n.group===g)" :key="it.id">
+            <button @click="navigate(it.id)" :title="it.label" class="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 group relative"
+              :class="view===it.id ? 'bg-teal-50 text-teal-800 ring-1 ring-teal-600/10' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'">
+              <span class="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-teal-600" x-show="view===it.id"></span>
+              <span class="shrink-0" :class="view===it.id ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'"><i :data-lucide="it.icon" class="w-[18px] h-[18px]"></i></span>
+              <span class="truncate" :class="collapsed && 'lg:hidden'" x-text="it.label"></span>
+              <span x-show="it.id==='issues' && !collapsed" class="ml-auto text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 tabular-nums" x-text="kpiVals().open"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </template>
+  </nav>
+  <div class="p-3 border-t border-slate-200/70 shrink-0">
+    <div class="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-100 cursor-pointer transition-colors" title="Hon. Anand Rao — MLA">
+      <div class="h-9 w-9 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-500 text-white grid place-items-center text-xs font-extrabold shrink-0">AR</div>
+      <div class="min-w-0" :class="collapsed && 'lg:hidden'">
+        <div class="text-[13px] font-bold text-slate-800 leading-4 truncate">Hon. Anand Rao</div>
+        <div class="text-[10.5px] text-slate-400 font-semibold truncate">MLA · Nagar Kshetra</div>
+      </div>
+      <button class="ml-auto hidden lg:grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-white hover:ring-1 ring-slate-200" :class="collapsed && 'lg:hidden'" @click="collapsed=true" title="Collapse sidebar"><i data-lucide="chevrons-left" class="w-4 h-4"></i></button>
+    </div>
+    <button x-show="collapsed" class="mt-1 hidden lg:grid w-full place-items-center h-8 rounded-lg text-slate-400 hover:bg-slate-100" @click="collapsed=false" title="Expand sidebar"><i data-lucide="chevrons-right" class="w-4 h-4"></i></button>
+  </div>
+</aside>
+
+<!-- ============ MAIN COLUMN ============ -->
+<div class="min-h-screen flex flex-col transition-[padding] duration-300" :class="collapsed ? 'lg:pl-[76px]' : 'lg:pl-[264px]'">
+
+  <!-- ============ TOP NAVBAR ============ -->
+  <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200/70">
+    <div class="h-16 px-4 sm:px-6 lg:px-8 flex items-center gap-2.5">
+      <button class="lg:hidden h-10 w-10 grid place-items-center rounded-xl text-slate-500 hover:bg-slate-100" @click="mobileNav=true"><i data-lucide="menu" class="w-5 h-5"></i></button>
+      <!-- search -->
+      <div class="relative w-full max-w-md" @click.outside="searchFocus=false">
+        <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+        <input id="gsearch" x-model="q" @focus="searchFocus=true" @keydown.escape="searchFocus=false" placeholder="Search booths, issues, workers…"
+          class="w-full h-10 pl-10 pr-12 rounded-xl bg-slate-100/80 border border-transparent focus:bg-white focus:border-teal-500/40 focus:ring-4 focus:ring-teal-500/10 text-sm outline-none transition-all placeholder:text-slate-400">
+        <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 border border-slate-200 rounded-md px-1.5 py-0.5 bg-white pointer-events-none">/</kbd>
+        <div x-show="searchFocus && q.trim().length>1" x-cloak class="absolute mt-2 w-full rounded-2xl bg-white shadow-lift ring-1 ring-slate-200 p-2 max-h-[380px] overflow-y-auto z-50">
+          <template x-if="results && (results.b.length||results.i.length||results.w.length)">
+            <div class="space-y-1">
+              <template x-for="b in results.b" :key="'sb'+b.id">
+                <button class="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 text-left" @click="openBooth(b);q='';searchFocus=false">
+                  <span class="h-8 w-8 rounded-lg grid place-items-center bg-teal-50 text-teal-600 shrink-0"><i data-lucide="map-pin" class="w-4 h-4"></i></span>
+                  <span class="min-w-0"><span class="block text-sm font-bold text-slate-800 truncate" x-text="b.name"></span><span class="block text-[11px] text-slate-400" x-text="b.code+' · Ward '+b.wardNo+' · '+b.ward"></span></span>
+                </button>
+              </template>
+              <template x-for="i in results.i" :key="'si'+i.id">
+                <button class="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 text-left" @click="navigate('issues');q='';searchFocus=false">
+                  <span class="h-8 w-8 rounded-lg grid place-items-center bg-violet-50 text-violet-600 shrink-0"><i data-lucide="clipboard-list" class="w-4 h-4"></i></span>
+                  <span class="min-w-0"><span class="block text-sm font-semibold text-slate-800 truncate" x-text="i.title"></span><span class="block text-[11px] text-slate-400" x-text="i.ref+' · '+i.cat+' · '+i.prio+' priority'"></span></span>
+                </button>
+              </template>
+              <template x-for="w in results.w" :key="'sw'+w.id">
+                <button class="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-slate-50 text-left" @click="navigate('workers');q='';searchFocus=false">
+                  <span class="h-8 w-8 rounded-lg grid place-items-center bg-sky-50 text-sky-600 shrink-0"><i data-lucide="users" class="w-4 h-4"></i></span>
+                  <span class="min-w-0"><span class="block text-sm font-semibold text-slate-800" x-text="w.name"></span><span class="block text-[11px] text-slate-400" x-text="w.ward+' · '+w.done+' tasks completed'"></span></span>
+                </button>
+              </template>
+            </div>
+          </template>
+          <template x-if="results && !(results.b.length||results.i.length||results.w.length)">
+            <div class="px-4 py-8 text-center"><i data-lucide="search" class="w-5 h-5 text-slate-300 mx-auto"></i><p class="mt-2 text-sm text-slate-400 font-semibold">No matches for “<span x-text="q"></span>”</p></div>
+          </template>
+        </div>
+      </div>
+      <div class="flex-1"></div>
+      <!-- constituency selector -->
+      <div class="relative" @click.outside="ctxOpen=false">
+        <button class="hidden sm:flex items-center gap-2 h-10 px-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 text-sm font-bold text-slate-700 shadow-sm transition-colors" @click="ctxOpen=!ctxOpen">
+          <i data-lucide="landmark" class="w-4 h-4 text-teal-600"></i>
+          <span x-text="ctx.name"></span><span class="font-mono text-[11px] text-slate-400 font-semibold" x-text="ctx.code"></span>
+          <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 transition-transform" :class="ctxOpen && 'rotate-180'"></i>
+        </button>
+        <div x-show="ctxOpen" x-cloak class="absolute right-0 mt-2 w-64 rounded-2xl bg-white shadow-lift ring-1 ring-slate-200 p-2 z-50">
+          <div class="px-3 pt-2 pb-1.5 sechead">Constituency context</div>
+          <template x-for="c in ctxList" :key="c.code">
+            <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-left" @click="setCtx(c);ctxOpen=false">
+              <span class="h-8 w-8 rounded-lg grid place-items-center bg-slate-100 text-slate-500 shrink-0"><i data-lucide="landmark" class="w-4 h-4"></i></span>
+              <span class="flex-1 min-w-0"><span class="block text-sm font-bold text-slate-800" x-text="c.name"></span><span class="block text-[11px] text-slate-400 font-mono" x-text="c.code+' · '+c.st"></span></span>
+              <i data-lucide="check" class="w-4 h-4 text-teal-600" x-show="ctx.code===c.code"></i>
+            </button>
+          </template>
+        </div>
+      </div>
+      <!-- date -->
+      <div class="hidden xl:flex items-center gap-2 h-10 px-3 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-500">
+        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i><span x-text="today"></span>
+      </div>
+      <!-- notifications -->
+      <div class="relative" @click.outside="notifOpen=false">
+        <button @click="notifOpen=!notifOpen" class="relative h-10 w-10 grid place-items-center rounded-xl bg-white ring-1 ring-slate-200 hover:ring-slate-300 text-slate-500 transition-all">
+          <i data-lucide="bell" class="w-[18px] h-[18px]"></i>
+          <span x-show="unread>0" class="absolute -top-1 -right-1 h-4.5 min-w-[18px] h-[18px] px-1 grid place-items-center rounded-full bg-rose-500 text-white text-[10px] font-extrabold ring-2 ring-white" x-text="unread"></span>
+        </button>
+        <div x-show="notifOpen" x-cloak class="absolute right-0 mt-2 w-[340px] rounded-2xl bg-white shadow-lift ring-1 ring-slate-200 z-50 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+            <span class="font-extrabold text-slate-900 text-sm">Notifications</span>
+            <button class="text-xs font-bold text-teal-700 hover:text-teal-800" @click="markRead()">Mark all read</button>
+          </div>
+          <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+            <template x-for="(n,idx) in notifs" :key="'n'+idx">
+              <div class="flex gap-3 px-4 py-3 hover:bg-slate-50" :class="!n.u && 'opacity-60'">
+                <span class="h-8 w-8 rounded-lg grid place-items-center shrink-0" :class="TINT[n.tint]"><i :data-lucide="n.i" class="w-4 h-4"></i></span>
+                <div class="min-w-0 flex-1">
+                  <div class="text-[13px] font-bold text-slate-800 flex items-center gap-1.5"><span class="truncate" x-text="n.t"></span><span class="h-1.5 w-1.5 rounded-full bg-teal-500 shrink-0" x-show="n.u"></span></div>
+                  <p class="text-xs text-slate-500 mt-0.5 leading-snug" x-text="n.d"></p>
+                  <p class="text-[10.5px] text-slate-400 font-semibold mt-1" x-text="n.w"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+          <button class="w-full py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 border-t border-slate-100" @click="notifOpen=false;toast('Full notification center is out of scope for this prototype','info')">View all activity</button>
+        </div>
+      </div>
+      <!-- profile -->
+      <div class="relative" @click.outside="profOpen=false">
+        <button @click="profOpen=!profOpen" class="flex items-center gap-2.5 pl-1 pr-2 h-10 rounded-xl hover:bg-slate-100 transition-colors">
+          <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-teal-600 to-emerald-500 text-white grid place-items-center text-[11px] font-extrabold">AR</div>
+          <div class="hidden md:block text-left leading-tight"><div class="text-[13px] font-bold text-slate-800">Anand Rao</div><div class="text-[10px] text-slate-400 font-semibold">MLA · Nagar Kshetra</div></div>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 hidden md:block"></i>
+        </button>
+        <div x-show="profOpen" x-cloak class="absolute right-0 mt-2 w-56 rounded-2xl bg-white shadow-lift ring-1 ring-slate-200 p-2 z-50">
+          <div class="px-3 py-2 border-b border-slate-100 mb-1"><div class="text-sm font-bold text-slate-800">Hon. Anand Rao</div><div class="text-[11px] text-slate-400">office.rao@constituency.in</div></div>
+          <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50" @click="profOpen=false;toast('Profile page is simulated in this prototype','info')"><i data-lucide="user" class="w-4 h-4 text-slate-400"></i>My profile</button>
+          <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50" @click="profOpen=false;navigate('settings')"><i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>Preferences</button>
+          <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50" @click="profOpen=false;toast('Help desk: 1800-180-4092 (sample)','info')"><i data-lucide="help-circle" class="w-4 h-4 text-slate-400"></i>Help & support</button>
+          <div class="border-t border-slate-100 my-1"></div>
+          <button class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-semibold text-rose-600 hover:bg-rose-50" @click="profOpen=false;toast('Signed out (simulated)','ok')"><i data-lucide="log-out" class="w-4 h-4"></i>Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-8 py-6 flex-1">
+
+    <!-- ================= DASHBOARD ================= -->
+    <template x-if="view==='dashboard'">
+      <div class="space-y-6 view-in">
+        <!-- hero -->
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-950 via-teal-800 to-emerald-700 text-white p-6 sm:p-8 shadow-lift">
+          <div class="absolute inset-0 dotgrid"></div>
+          <div class="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl"></div>
+          <div class="absolute right-24 -bottom-28 h-64 w-64 rounded-full border border-white/10"></div>
+          <div class="absolute right-36 -bottom-20 h-40 w-40 rounded-full border border-white/10"></div>
+          <div class="relative flex flex-col lg:flex-row lg:items-end gap-6 justify-between">
+            <div>
+              <div class="flex flex-wrap items-center gap-2 text-[11px] font-extrabold tracking-[0.14em] uppercase text-teal-200/90">
+                <i data-lucide="landmark" class="w-3.5 h-3.5"></i><span x-text="ctx.name+' · '+ctx.code"></span>
+                <span class="text-white/30">|</span><span>Constituency Intelligence</span>
+                <span class="normal-case tracking-normal font-bold bg-white/10 ring-1 ring-white/15 rounded-full px-2.5 py-0.5 text-[10px] text-teal-100/90">Prototype · sample data</span>
+              </div>
+              <h1 class="mt-2.5 text-2xl sm:text-[32px] font-extrabold tracking-tight leading-tight">Namaste, Hon. Anand Rao</h1>
+              <p class="mt-1.5 text-teal-100/80 text-sm max-w-xl leading-relaxed">Live operating picture across 10 wards and 24 monitored booths — service delivery, volunteer network and citizen sentiment at a glance.</p>
+              <div class="mt-4 flex flex-wrap gap-2 text-xs font-bold">
+                <span class="flex items-center gap-1.5 bg-white/10 ring-1 ring-white/15 backdrop-blur px-3 py-1.5 rounded-full"><i data-lucide="users" class="w-3.5 h-3.5 text-teal-200"></i>Population <span class="tabular-nums" x-text="fmtK(sumPop)"></span></span>
+                <span class="flex items-center gap-1.5 bg-white/10 ring-1 ring-white/15 backdrop-blur px-3 py-1.5 rounded-full"><i data-lucide="vote" class="w-3.5 h-3.5 text-teal-200"></i>Voters <span class="tabular-nums" x-text="fmtK(sumVot)"></span></span>
+                <span class="flex items-center gap-1.5 bg-white/10 ring-1 ring-white/15 backdrop-blur px-3 py-1.5 rounded-full"><i data-lucide="users" class="w-3.5 h-3.5 text-teal-200"></i>50 workers</span>
+                <span class="flex items-center gap-1.5 bg-white/10 ring-1 ring-white/15 backdrop-blur px-3 py-1.5 rounded-full"><i data-lucide="inbox" class="w-3.5 h-3.5 text-teal-200"></i><span class="tabular-nums" x-text="kpiVals().open"></span> open issues</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <div class="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur px-5 py-4 min-w-[168px]">
+                <div class="text-[10px] uppercase tracking-wider text-teal-100/70 font-extrabold flex items-center gap-1.5"><i data-lucide="gauge" class="w-3.5 h-3.5"></i>Constituency health</div>
+                <div class="mt-1 text-3xl font-extrabold tabular-nums"><span x-text="disp.health"></span><span class="text-base text-teal-200/70 font-bold">/100</span></div>
+                <div class="mt-1 text-[11px] text-emerald-300 font-bold flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3"></i>+2.4 this week</div>
+              </div>
+              <div class="rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur px-5 py-4 min-w-[210px]">
+                <div class="text-[10px] uppercase tracking-wider text-teal-100/70 font-extrabold flex items-center gap-1.5"><i data-lucide="vote" class="w-3.5 h-3.5"></i>Winning Readiness Index</div>
+                <div class="mt-1 text-3xl font-extrabold tabular-nums"><span x-text="disp.ready"></span><span class="text-base text-teal-200/70 font-bold">/100</span></div>
+                <div class="mt-2 h-1.5 rounded-full bg-white/15 overflow-hidden relative">
+                  <div class="h-full rounded-full bg-gradient-to-r from-amber-300 to-emerald-300 transition-all duration-700" :style="'width:'+disp.ready+'%'"></div>
+                  <span class="absolute top-0 bottom-0 w-px bg-white/40" style="left:40%"></span>
+                  <span class="absolute top-0 bottom-0 w-px bg-white/40" style="left:70%"></span>
+                </div>
+                <div class="mt-1.5 text-[10px] text-teal-100/60 leading-snug">Planning indicator — reflects service-readiness metrics only, not an outcome prediction.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="card p-6 flex items-center gap-5 sm:gap-6">
+            <div class="relative shrink-0">
+              <div id="ch-gauge"></div>
+              <div class="absolute inset-0 grid place-items-center pointer-events-none">
+                <div class="text-center"><div class="text-[28px] leading-none font-extrabold tabular-nums text-slate-900" x-text="disp.health"></div><div class="mt-1 text-[9.5px] font-extrabold tracking-widest text-slate-400 uppercase">Health</div></div>
+              </div>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-extrabold text-slate-900">Overall Health Score</h3>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">Blended index of participation, satisfaction, volunteer coverage and open service load across all booths.</p>
+              <div class="mt-3 flex flex-wrap gap-1.5 text-[11px] font-bold">
+                <span class="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700">Participation <span class="tabular-nums" x-text="kpiVals().partAvg+'%'"></span></span>
+                <span class="px-2 py-1 rounded-lg bg-teal-50 text-teal-700">Satisfaction <span class="tabular-nums" x-text="kpiVals().satAvg+'%'"></span></span>
+                <span class="px-2 py-1 rounded-lg bg-sky-50 text-sky-700">Coverage <span class="tabular-nums" x-text="kpiVals().covAvg+'%'"></span></span>
+              </div>
+            </div>
+          </div>
+          <div class="xl:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <template x-for="t in kpiTiles" :key="t.k">
+              <div class="rounded-2xl bg-white ring-1 ring-slate-200/70 shadow-soft p-4 flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200" :class="t.wide && 'col-span-2'">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="h-9 w-9 rounded-xl grid place-items-center shrink-0" :class="TINT[t.tint]"><i :data-lucide="t.icon" class="w-[18px] h-[18px]"></i></div>
+                  <svg viewBox="0 0 100 28" class="w-20 h-7 shrink-0"><polyline :points="sp(t.spark)" fill="none" :stroke="t.sc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/></svg>
+                </div>
+                <div class="mt-3">
+                  <div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400" x-text="t.label"></div>
+                  <div class="mt-0.5 flex items-baseline gap-2 flex-wrap">
+                    <span class="text-2xl font-extrabold tabular-nums text-slate-900" x-text="disp[t.k] !== undefined ? disp[t.k] : t.val"></span>
+                    <span x-show="t.wide" class="text-lg font-extrabold text-slate-400">%</span>
+                    <span class="flex items-center gap-1 text-[11px] font-extrabold px-1.5 py-0.5 rounded-md"
+                      :class="t.dir==='flat' ? 'bg-slate-100 text-slate-500' : (t.good ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600')">
+                      <i :data-lucide="t.dir==='up'?'trending-up':(t.dir==='down'?'trending-down':'minus')" class="w-3 h-3"></i><span x-text="t.delta"></span>
+                    </span>
+                  </div>
+                  <div x-show="t.wide" class="mt-2.5">
+                    <div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 transition-all duration-700" :style="'width:'+disp.cov+'%'"></div></div>
+                    <div class="mt-1.5 text-[11px] text-slate-400 font-semibold">19 of 24 booths above 60% coverage · 31 workers on duty today</div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- booth map -->
+        <div class="card p-5 sm:p-6" @mousemove="mapMove($event)" @mouseleave="peek=null">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900">Constituency Booth Map</h2>
+              <p class="text-xs text-slate-500 mt-0.5">24 monitored booths across 10 wards — hover for a live snapshot, click to open the full drilldown.</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-bold text-slate-500">
+              <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Good</span>
+              <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>Watch</span>
+              <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-rose-500"></span>Needs attention</span>
+            </div>
+          </div>
+          <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3">
+            <template x-for="b in BOOTHS" :key="'map'+b.id">
+              <button @click="openBooth(b)" @mouseenter="peek=b" class="text-left rounded-xl border p-3.5 transition-all duration-200 hover:-translate-y-1 hover:shadow-lift" :class="TILE[b.status]">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/80 ring-1 ring-inset ring-slate-200 text-slate-500" x-text="b.code"></span>
+                  <span class="h-2 w-2 rounded-full" :class="DOT[b.status]"></span>
+                </div>
+                <div class="mt-2 text-[13px] font-bold text-slate-800 leading-tight truncate" x-text="b.name"></div>
+                <div class="text-[11px] text-slate-500 truncate" x-text="'Ward '+b.wardNo+' · '+b.ward"></div>
+                <div class="mt-2.5 flex items-center justify-between text-[11px] font-bold text-slate-500">
+                  <span class="flex items-center gap-1"><i data-lucide="clipboard-list" class="w-3 h-3"></i><span :class="b.openIssues>6 ? 'text-rose-600' : 'text-slate-600'" x-text="b.openIssues"></span></span>
+                  <span class="flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i><span x-text="b.volunteers"></span></span>
+                  <span class="tabular-nums" x-text="b.health"></span>
+                </div>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- charts row 1 -->
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="card p-5 sm:p-6 xl:col-span-2">
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <div><h2 class="text-base font-extrabold text-slate-900">Booth Status by Ward</h2><p class="text-xs text-slate-500 mt-0.5">Strong / competitive / needs-attention distribution</p></div>
+              <span class="badge bg-slate-100 text-slate-500 ring-slate-200"><i data-lucide="layers" class="w-3 h-3"></i>10 wards</span>
+            </div>
+            <div id="ch-status" class="mt-3"></div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Issue Categories</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Share of <span x-text="ISSUES.length"></span> logged public issues</p>
+            <div class="relative mt-2">
+              <div id="ch-donut"></div>
+              <div class="absolute inset-0 grid place-items-center pointer-events-none">
+                <div class="text-center"><div class="text-2xl font-extrabold tabular-nums text-slate-900">220</div><div class="text-[9.5px] font-extrabold uppercase tracking-widest text-slate-400">Logged</div></div>
+              </div>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
+              <template x-for="c in catStats" :key="'cl'+c.c">
+                <div class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600"><span class="h-2 w-2 rounded-sm shrink-0" :style="'background:'+c.col"></span><span class="truncate" x-text="c.c"></span><span class="ml-auto tabular-nums text-slate-400 font-bold" x-text="c.n"></span></div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI insights -->
+        <div class="relative overflow-hidden rounded-3xl bg-slate-900 text-white p-6 sm:p-8 shadow-lift">
+          <div class="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-teal-500/20 blur-3xl"></div>
+          <div class="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl"></div>
+          <div class="relative flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+              <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-400 grid place-items-center text-slate-900 shrink-0"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+              <div>
+                <h2 class="text-lg font-extrabold tracking-tight">Operational Insights</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Neutral guidance derived from service-delivery metrics — a planning aid, not a prediction.</p>
+              </div>
+            </div>
+            <button @click="refreshInsights()" class="flex items-center gap-2 text-xs font-bold px-3.5 py-2 rounded-xl bg-white/10 ring-1 ring-white/15 hover:bg-white/[0.16] transition-colors">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5" :class="analyzing && 'animate-spin'"></i>Refresh analysis
+            </button>
+          </div>
+          <div class="relative mt-6 grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <template x-for="(ins,i) in INSIGHTS" :key="ins.title">
+              <div class="rise rounded-2xl bg-white/[0.06] ring-1 ring-white/10 p-5 hover:bg-white/[0.09] transition-colors duration-200" :style="'animation-delay:'+(i*90)+'ms'">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-extrabold tracking-wider uppercase px-2 py-0.5 rounded-md" :class="TAGC[ins.tag]" x-text="ins.tag"></span>
+                  <span class="text-[11px] font-mono text-slate-500" x-text="'#'+(i+1)"></span>
+                </div>
+                <h3 class="mt-2.5 font-bold text-[15px] leading-snug" x-text="ins.title"></h3>
+                <p class="mt-1.5 text-[13px] text-slate-400 leading-relaxed" x-text="ins.desc"></p>
+                <div class="mt-3.5 flex items-center justify-between text-[11px] font-bold"><span class="text-slate-400">Confidence</span><span class="text-teal-300 tabular-nums" x-text="ins.conf+'%'"></span></div>
+                <div class="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-700" :style="'width:'+ins.conf+'%'"></div></div>
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  <template x-for="c in ins.chips" :key="ins.title+c"><span class="text-[10.5px] font-semibold px-2 py-1 rounded-lg bg-white/[0.07] text-slate-300" x-text="c"></span></template>
+                </div>
+                <button @click="toast('Added to outreach plan — '+ins.title,'ok')" class="mt-3.5 text-xs font-extrabold text-teal-300 hover:text-teal-200 flex items-center gap-1 transition-colors">Plan follow-up <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i></button>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- charts row 2 -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6">
+            <div class="flex items-end justify-between gap-3">
+              <div><h2 class="text-base font-extrabold text-slate-900">Public Issue Trends</h2><p class="text-xs text-slate-500 mt-0.5">Reported vs resolved — trailing 12 months</p></div>
+              <span class="badge bg-emerald-50 text-emerald-700 ring-emerald-600/20"><i data-lucide="trending-down" class="w-3 h-3"></i>Backlog shrinking</span>
+            </div>
+            <div id="ch-trend" class="mt-3"></div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <div class="flex items-end justify-between gap-3">
+              <div><h2 class="text-base font-extrabold text-slate-900">Volunteer Activity</h2><p class="text-xs text-slate-500 mt-0.5">Field visits and new volunteers onboarded</p></div>
+              <span class="badge bg-teal-50 text-teal-700 ring-teal-600/20"><i data-lucide="activity" class="w-3 h-3"></i>+18% YoY</span>
+            </div>
+            <div id="ch-area" class="mt-3"></div>
+          </div>
+        </div>
+
+        <!-- charts row 3 -->
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Ward Comparison</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Average booth health score per ward (colour = status band)</p>
+            <div id="ch-hbar" class="mt-3"></div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Monthly Outreach</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Outreach touches by weekday × month</p>
+            <div id="ch-heat" class="mt-3"></div>
+          </div>
+        </div>
+
+        <!-- timeline -->
+        <div class="card p-5 sm:p-6">
+          <div class="flex flex-wrap items-end justify-between gap-3">
+            <div><h2 class="text-base font-extrabold text-slate-900">Campaign Activities Timeline</h2><p class="text-xs text-slate-500 mt-0.5">Planned and running constituency programmes</p></div>
+            <button class="btn-o !h-9 !px-3 text-xs" @click="navigate('campaign')"><i data-lucide="calendar-days" class="w-3.5 h-3.5"></i>Open planner</button>
+          </div>
+          <div id="ch-timeline" class="mt-3"></div>
+        </div>
+
+        <!-- booth performance table -->
+        <div class="card overflow-hidden">
+          <div class="p-5 sm:p-6 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900">Booth Performance Table</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Click any row to open the booth drilldown · <span x-text="filteredBooths.length"></span> of 24 shown</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"></i>
+                <input x-model="bq" placeholder="Search booth or ward…" class="inp !h-9 !pl-9 w-52 text-[13px]">
+              </div>
+              <select x-model="bWard" class="inp !h-9 !py-0 text-[13px] font-semibold pr-8">
+                <option>All</option><template x-for="w in WARDS" :key="'fw'+w.id"><option x-text="w.name"></option></template>
+              </select>
+              <select x-model="bStatus" class="inp !h-9 !py-0 text-[13px] font-semibold pr-8">
+                <option value="All">All status</option><option value="strong">Good</option><option value="competitive">Watch</option><option value="attention">Needs attention</option>
+              </select>
+              <button class="btn-o !h-9 !px-3 text-xs" @click="exportBooths()"><i data-lucide="download" class="w-3.5 h-3.5"></i>CSV</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto border-t border-slate-100">
+            <div class="max-h-[540px] overflow-y-auto">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-slate-50/95 backdrop-blur border-b border-slate-200 z-10">
+                  <tr>
+                    <th class="th">Booth</th><th class="th">Ward</th>
+                    <th class="th cursor-pointer select-none hover:text-slate-600" @click="sortBooths('voters')"><span class="inline-flex items-center gap-1">Registered voters <i :data-lucide="sortKey==='voters' ? (sortDir===1?'chevron-up':'chevron-down') : 'chevrons-up-down'" class="w-3 h-3"></i></span></th>
+                    <th class="th cursor-pointer select-none hover:text-slate-600" @click="sortBooths('participation')"><span class="inline-flex items-center gap-1">Participation <i :data-lucide="sortKey==='participation' ? (sortDir===1?'chevron-up':'chevron-down') : 'chevrons-up-down'" class="w-3 h-3"></i></span></th>
+                    <th class="th">Issue count</th><th class="th">Volunteer coverage</th><th class="th">Citizen satisfaction</th>
+                    <th class="th cursor-pointer select-none hover:text-slate-600" @click="sortBooths('health')"><span class="inline-flex items-center gap-1">Overall health <i :data-lucide="sortKey==='health' ? (sortDir===1?'chevron-up':'chevron-down') : 'chevrons-up-down'" class="w-3 h-3"></i></span></th>
+                    <th class="th">Priority</th><th class="th">Action</th><th class="th">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="b in filteredBooths" :key="'tb'+b.id">
+                    <tr class="hover:bg-slate-50/80 cursor-pointer transition-colors" @click="openBooth(b)">
+                      <td class="td"><div class="flex items-center gap-2.5"><span class="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500" x-text="b.code"></span><span class="font-bold text-slate-800" x-text="b.name"></span></div></td>
+                      <td class="td text-slate-600" x-text="'W'+b.wardNo+' · '+b.ward"></td>
+                      <td class="td tabular-nums font-semibold text-slate-700" x-text="nfmt(b.voters)"></td>
+                      <td class="td"><div class="flex items-center gap-2"><span class="tabular-nums font-semibold text-slate-700 w-10" x-text="b.participation+'%'"></span><span class="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden inline-block"><span class="block h-full bg-teal-500 rounded-full" :style="'width:'+b.participation+'%'"></span></span></div></td>
+                      <td class="td"><span class="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md" :class="b.openIssues>=7 ? 'bg-rose-50 text-rose-600' : (b.openIssues>=4 ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500')" x-text="b.openIssues+' open'"></span></td>
+                      <td class="td"><div class="flex items-center gap-2"><span class="tabular-nums font-semibold text-slate-700 w-10" x-text="b.coverage+'%'"></span><span class="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden inline-block"><span class="block h-full rounded-full" :class="b.coverage>=60?'bg-teal-500':(b.coverage>=40?'bg-amber-500':'bg-rose-500')" :style="'width:'+b.coverage+'%'"></span></span></div></td>
+                      <td class="td tabular-nums font-semibold text-slate-700" x-text="b.satisfaction+'%'"></td>
+                      <td class="td"><span class="inline-flex items-center justify-center min-w-[42px] text-xs font-extrabold px-2 py-1 rounded-lg tabular-nums" :class="HPILL[b.status]" x-text="b.health"></span></td>
+                      <td class="td"><span class="text-[11px] font-extrabold px-2 py-0.5 rounded-md" :class="PRIO[b.prio]" x-text="b.prio"></span></td>
+                      <td class="td"><button class="btn-s bg-white ring-1 ring-slate-200 hover:ring-teal-400 hover:text-teal-700 text-slate-600" @click.stop="openBooth(b)"><i data-lucide="eye" class="w-3.5 h-3.5"></i>View</button></td>
+                      <td class="td"><span class="badge" :class="SERV_BADGE[b.status]"><span class="h-1.5 w-1.5 rounded-full" :class="DOT[b.status]"></span><span x-text="STATUS_LB[b.status]"></span></span></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= CONSTITUENCY ================= -->
+    <template x-if="view==='constituency'">
+      <div class="space-y-6 view-in">
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-950 via-teal-800 to-emerald-700 text-white p-6 sm:p-8 shadow-lift">
+          <div class="absolute inset-0 dotgrid"></div>
+          <div class="absolute -left-16 -bottom-24 h-64 w-64 rounded-full bg-teal-400/20 blur-3xl"></div>
+          <div class="relative">
+            <div class="text-[11px] font-extrabold tracking-[0.14em] uppercase text-teal-200/90 flex items-center gap-2"><i data-lucide="landmark" class="w-3.5 h-3.5"></i>Constituency profile</div>
+            <h1 class="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight" x-text="ctx.name+' · '+ctx.code"></h1>
+            <p class="mt-1.5 text-teal-100/80 text-sm max-w-2xl leading-relaxed">An urban assembly segment monitored through a 24-booth network spanning 10 municipal wards. All figures below are reconciled against the booth-level sample dataset.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <template x-for="s in constStats" :key="s.l">
+            <div class="card p-4 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200">
+              <div class="h-8 w-8 rounded-lg grid place-items-center" :class="TINT[s.tint]"><i :data-lucide="s.i" class="w-4 h-4"></i></div>
+              <div class="mt-2.5 text-xl font-extrabold tabular-nums text-slate-900" x-text="s.v"></div>
+              <div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400" x-text="s.l"></div>
+            </div>
+          </template>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Demographic Composition</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Aggregated across the booth sample</p>
+            <div class="mt-5 space-y-4">
+              <template x-for="a in ageMix" :key="a.l">
+                <div>
+                  <div class="flex items-center justify-between text-xs font-bold"><span class="text-slate-600" x-text="a.l"></span><span class="tabular-nums text-slate-900" x-text="a.v+'%'"></span></div>
+                  <div class="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-teal-600 to-emerald-400" :style="'width:'+a.v+'%'"></div></div>
+                </div>
+              </template>
+            </div>
+            <div class="mt-6 pt-5 border-t border-slate-100 grid grid-cols-2 gap-3 text-center">
+              <div><div class="text-lg font-extrabold tabular-nums text-slate-900">51% / 49%</div><div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">Male / Female</div></div>
+              <div><div class="text-lg font-extrabold tabular-nums text-slate-900" x-text="nfmt(Math.round(sumPop/4.3))"></div><div class="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">Households</div></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden xl:col-span-2">
+            <div class="p-5 sm:p-6 flex items-end justify-between gap-3">
+              <div><h2 class="text-base font-extrabold text-slate-900">Ward Directory</h2><p class="text-xs text-slate-500 mt-0.5">Population, voter base and delivery health per ward</p></div>
+              <span class="badge bg-slate-100 text-slate-500 ring-slate-200"><i data-lucide="network" class="w-3 h-3"></i>10 wards</span>
+            </div>
+            <div class="overflow-x-auto border-t border-slate-100 max-h-[420px] overflow-y-auto">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-slate-50/95 backdrop-blur border-b border-slate-200 z-10"><tr><th class="th">Ward</th><th class="th">Booths</th><th class="th">Population</th><th class="th">Voters</th><th class="th">Avg health</th><th class="th">Open issues</th><th class="th">Status</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                  <template x-for="w in wardRows" :key="'wd'+w.name">
+                    <tr class="hover:bg-slate-50/80"><td class="td font-bold text-slate-800" x-text="w.name"></td><td class="td tabular-nums text-slate-600" x-text="w.booths"></td><td class="td tabular-nums text-slate-600" x-text="nfmt(w.pop)"></td><td class="td tabular-nums text-slate-600" x-text="nfmt(w.voters)"></td><td class="td tabular-nums font-bold" x-text="w.health"></td><td class="td tabular-nums text-slate-600" x-text="w.open"></td><td class="td"><span class="h-2.5 w-2.5 rounded-full inline-block" :class="DOT[w.status]"></span></td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="card p-5 sm:p-6 md:col-span-2">
+            <h2 class="text-base font-extrabold text-slate-900">MLA Office & Public Contact</h2>
+            <div class="mt-4 grid sm:grid-cols-2 gap-3">
+              <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5"><span class="h-9 w-9 rounded-lg bg-white ring-1 ring-slate-200 grid place-items-center text-teal-600 shrink-0"><i data-lucide="map-pin" class="w-4 h-4"></i></span><div><div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Office</div><div class="text-sm font-semibold text-slate-700 mt-0.5">123 Civic Centre Road, Ward 4,<br>Nagar Kshetra — 400 001</div></div></div>
+              <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5"><span class="h-9 w-9 rounded-lg bg-white ring-1 ring-slate-200 grid place-items-center text-teal-600 shrink-0"><i data-lucide="phone" class="w-4 h-4"></i></span><div><div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Toll-free helpline</div><div class="text-sm font-semibold text-slate-700 mt-0.5">1800-180-4092</div><button class="mt-1 text-[11px] font-bold text-teal-700 hover:text-teal-800" @click="copyHelpline()">Copy number</button></div></div>
+              <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5"><span class="h-9 w-9 rounded-lg bg-white ring-1 ring-slate-200 grid place-items-center text-teal-600 shrink-0"><i data-lucide="mail" class="w-4 h-4"></i></span><div><div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Email</div><div class="text-sm font-semibold text-slate-700 mt-0.5">office@nagarkshetra.in</div></div></div>
+              <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3.5"><span class="h-9 w-9 rounded-lg bg-white ring-1 ring-slate-200 grid place-items-center text-teal-600 shrink-0"><i data-lucide="clock" class="w-4 h-4"></i></span><div><div class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">Public hours</div><div class="text-sm font-semibold text-slate-700 mt-0.5">Mon–Sat · 10:00 AM – 5:00 PM</div></div></div>
+            </div>
+          </div>
+          <div class="card p-5 sm:p-6 flex flex-col justify-between">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900">Data Lineage</h2>
+              <p class="text-xs text-slate-500 mt-1 leading-relaxed">This prototype runs entirely in your browser on a deterministic sample dataset. No external GIS, CRM or backend is connected.</p>
+            </div>
+            <div class="mt-4 rounded-xl bg-teal-50 ring-1 ring-teal-600/10 p-3.5 flex items-start gap-3">
+              <i data-lucide="info" class="w-4 h-4 text-teal-600 mt-0.5 shrink-0"></i>
+              <p class="text-xs text-teal-800 font-semibold leading-relaxed">Last sample sync: today, 06:00 AM · 24 booths · 220 issues · 50 workers</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= BOOTH ANALYTICS ================= -->
+    <template x-if="view==='booths'">
+      <div class="space-y-6 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Analytics</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Booth Analytics</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Booth Analytics</h1>
+            <p class="text-sm text-slate-500 mt-1">Coverage, satisfaction and volunteer strength for every monitored booth.</p>
+          </div>
+          <div class="flex gap-2">
+            <select class="inp font-semibold pr-8" @change="openBooth(BOOTHS[$event.target.value-1])" x-model="jumpBooth">
+              <option value="" disabled>Quick drilldown…</option>
+              <template x-for="b in BOOTHS" :key="'jb'+b.id"><option :value="b.id" x-text="b.code+' — '+b.name"></option></template>
+            </select>
+            <button class="btn-o" @click="exportBooths()"><i data-lucide="download" class="w-4 h-4"></i>Export CSV</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <template x-for="s in boothStats" :key="s.l">
+            <div class="card p-4 flex items-center gap-3.5 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200">
+              <div class="h-10 w-10 rounded-xl grid place-items-center shrink-0" :class="TINT[s.tint]"><i :data-lucide="s.i" class="w-5 h-5"></i></div>
+              <div><div class="text-xl font-extrabold tabular-nums text-slate-900" x-text="s.v"></div><div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400" x-text="s.l"></div></div>
+            </div>
+          </template>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="card p-5 sm:p-6 xl:col-span-2">
+            <h2 class="text-base font-extrabold text-slate-900">Coverage vs Satisfaction</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Each point is a booth — hover to identify. Upper-right quadrant is the target zone.</p>
+            <div id="ch-scatter" class="mt-3"></div>
+          </div>
+          <div class="space-y-5">
+            <div class="card p-5 sm:p-6">
+              <h3 class="font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i>Coverage leaders</h3>
+              <div class="mt-3 space-y-3">
+                <template x-for="b in topCoverage" :key="'tc'+b.id">
+                  <div class="flex items-center gap-3">
+                    <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 shrink-0" x-text="b.code"></span>
+                    <div class="flex-1 min-w-0"><div class="text-[13px] font-bold text-slate-800 truncate" x-text="b.name"></div><div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-1"><div class="h-full rounded-full bg-teal-500" :style="'width:'+b.coverage+'%'"></div></div></div>
+                    <span class="text-xs font-extrabold tabular-nums text-teal-700 shrink-0" x-text="b.coverage+'%'"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <div class="card p-5 sm:p-6">
+              <h3 class="font-extrabold text-slate-900 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500"></i>Coverage watchlist</h3>
+              <div class="mt-3 space-y-3">
+                <template x-for="b in lowCoverage" :key="'lc'+b.id">
+                  <div class="flex items-center gap-3">
+                    <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 shrink-0" x-text="b.code"></span>
+                    <div class="flex-1 min-w-0"><div class="text-[13px] font-bold text-slate-800 truncate" x-text="b.name"></div><div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mt-1"><div class="h-full rounded-full bg-rose-500" :style="'width:'+b.coverage+'%'"></div></div></div>
+                    <button class="btn-s bg-rose-50 text-rose-600 hover:bg-rose-100 shrink-0" @click="openBooth(b)">Fix</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card p-5 sm:p-6">
+          <h2 class="text-base font-extrabold text-slate-900">Volunteer Strength per Booth</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Active volunteers vs the coverage gap to target</p>
+          <div id="ch-volbar" class="mt-3"></div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= WARD ANALYTICS ================= -->
+    <template x-if="view==='wards'">
+      <div class="space-y-6 view-in">
+        <div>
+          <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Analytics</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Ward Analytics</span></nav>
+          <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Ward Analytics</h1>
+          <p class="text-sm text-slate-500 mt-1">Cross-ward comparison of population, voter base and delivery health.</p>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Population vs Voter Base</h2>
+            <p class="text-xs text-slate-500 mt-0.5">In thousands, per ward</p>
+            <div id="ch-wardbar" class="mt-3"></div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Population Share</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Ward weight in the booth sample</p>
+            <div class="relative mt-2">
+              <div id="ch-warddonut"></div>
+              <div class="absolute inset-0 grid place-items-center pointer-events-none">
+                <div class="text-center"><div class="text-2xl font-extrabold tabular-nums text-slate-900" x-text="fmtK(sumPop)"></div><div class="text-[9.5px] font-extrabold uppercase tracking-widest text-slate-400">Population</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6 flex items-start gap-4">
+            <div class="h-11 w-11 rounded-xl bg-emerald-50 text-emerald-600 grid place-items-center shrink-0"><i data-lucide="trophy" class="w-5 h-5"></i></div>
+            <div><div class="sechead">Best-performing ward</div><div class="mt-1 text-lg font-extrabold text-slate-900" x-text="spotlight.best.name"></div><p class="text-xs text-slate-500 mt-1 leading-relaxed">Average booth health of <b class="text-emerald-600" x-text="spotlight.best.health"></b> with <span x-text="spotlight.best.open"></span> open issues. Consider documenting its volunteer rotation model as a playbook.</p></div>
+          </div>
+          <div class="card p-5 sm:p-6 flex items-start gap-4">
+            <div class="h-11 w-11 rounded-xl bg-rose-50 text-rose-600 grid place-items-center shrink-0"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
+            <div><div class="sechead">Requires attention</div><div class="mt-1 text-lg font-extrabold text-slate-900" x-text="spotlight.worst.name"></div><p class="text-xs text-slate-500 mt-1 leading-relaxed">Average booth health of <b class="text-rose-600" x-text="spotlight.worst.health"></b> with <span x-text="spotlight.worst.open"></span> open issues. Recommend a grievance chaupal and volunteer top-up within a fortnight.</p></div>
+          </div>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="p-5 sm:p-6"><h2 class="text-base font-extrabold text-slate-900">Ward Scorecard</h2><p class="text-xs text-slate-500 mt-0.5">Aggregated from booth-level records</p></div>
+          <div class="overflow-x-auto border-t border-slate-100">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50/95 border-b border-slate-200"><tr><th class="th">Ward</th><th class="th">Booths</th><th class="th">Population</th><th class="th">Voters</th><th class="th">Avg coverage</th><th class="th">Avg health</th><th class="th">Open issues</th><th class="th">Action</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="w in wardRows" :key="'wt'+w.name">
+                  <tr class="hover:bg-slate-50/80">
+                    <td class="td font-bold text-slate-800" x-text="w.name"></td><td class="td tabular-nums text-slate-600" x-text="w.booths"></td>
+                    <td class="td tabular-nums text-slate-600" x-text="nfmt(w.pop)"></td><td class="td tabular-nums text-slate-600" x-text="nfmt(w.voters)"></td>
+                    <td class="td"><div class="flex items-center gap-2"><span class="tabular-nums font-semibold w-9" x-text="w.cov+'%'"></span><span class="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden inline-block"><span class="block h-full rounded-full" :class="w.cov>=60?'bg-teal-500':(w.cov>=40?'bg-amber-500':'bg-rose-500')" :style="'width:'+w.cov+'%'"></span></span></div></td>
+                    <td class="td tabular-nums font-bold" x-text="w.health"></td><td class="td tabular-nums text-slate-600" x-text="w.open"></td>
+                    <td class="td"><button class="btn-s bg-white ring-1 ring-slate-200 hover:ring-teal-400 hover:text-teal-700 text-slate-600" @click="toast('Ward brief for '+w.name+' — opening in full product (prototype)','info')">Brief</button></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= ISSUES (KANBAN) ================= -->
+    <template x-if="view==='issues'">
+      <div class="space-y-5 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Operations</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Issues</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Public Issues</h1>
+            <p class="text-sm text-slate-500 mt-1">Working board for citizen-reported service requests — drag cards between stages, or use the arrows.</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <select x-model="kDept" class="inp font-semibold pr-8"><option value="All">All departments</option><template x-for="d in DEPTS" :key="'kd'+d"><option x-text="d"></option></template></select>
+            <select x-model="kPrio" class="inp font-semibold pr-8"><option value="All">All priorities</option><option>High</option><option>Medium</option><option>Low</option></select>
+            <button class="btn-p" @click="toast('New issue form — simulated in this prototype','info')"><i data-lucide="plus" class="w-4 h-4"></i>New issue</button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <template x-for="s in [['Open',issueStats.open,'bg-violet-50 text-violet-700'],['High priority',issueStats.high,'bg-rose-50 text-rose-700'],['Avg days open',issueStats.avg+'d','bg-amber-50 text-amber-700'],['Resolution rate',issueStats.rate+'%','bg-emerald-50 text-emerald-700']]" :key="s[0]">
+            <div class="flex items-center gap-2.5 rounded-xl bg-white ring-1 ring-slate-200/70 shadow-soft px-4 py-2.5">
+              <span class="text-lg font-extrabold tabular-nums text-slate-900" x-text="s[1]"></span>
+              <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400" x-text="s[0]"></span>
+              <span class="h-6 w-1 rounded-full" :class="s[2].split(' ')[0]"></span>
+            </div>
+          </template>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+          <template x-for="col in ['reported','assigned','inprogress','resolved']" :key="col">
+            <div class="rounded-2xl bg-slate-100/70 ring-1 ring-slate-200/60 p-3 transition-shadow" :class="dragOver===col && 'ring-2 ring-teal-400 ring-inset'" @dragover.prevent="dragOver=col" @dragleave="dragOver=null" @drop.prevent="dropTo(col)">
+              <div class="flex items-center justify-between px-1.5 py-1">
+                <div class="flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-full" :class="KC[col].d"></span><span class="text-[13px] font-extrabold text-slate-700" x-text="KC[col].l"></span></div>
+                <span class="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-white ring-1 ring-slate-200 text-slate-500 tabular-nums" x-text="colIssues(col).length"></span>
+              </div>
+              <div class="mt-2.5 space-y-2.5 min-h-[120px] max-h-[560px] overflow-y-auto pr-0.5">
+                <template x-for="i in colIssues(col)" :key="'kb'+i.id">
+                  <div class="rounded-xl bg-white ring-1 ring-slate-200/80 shadow-sm p-3.5 hover:shadow-lift hover:-translate-y-0.5 transition-all duration-150 cursor-grab active:cursor-grabbing" :class="col==='resolved' && 'opacity-75'" draggable="true" @dragstart="dragging=i.id" @dragend="dragging=null">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md" :class="PRIO[i.prio]" x-text="i.prio"></span>
+                      <span class="text-[10px] font-extrabold tabular-nums px-1.5 py-0.5 rounded-md" :class="i.stage!=='resolved' ? (i.age>10 ? 'bg-rose-50 text-rose-600' : (i.age>5 ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-500')) : 'bg-emerald-50 text-emerald-600'"
+                        x-text="i.stage==='resolved' ? 'closed' : i.age+'d pending'"></span>
+                    </div>
+                    <p class="mt-2 text-[13px] font-bold text-slate-800 leading-snug" x-text="i.title"></p>
+                    <div class="mt-2 space-y-1 text-[11px] font-semibold text-slate-500">
+                      <div class="flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3 h-3 text-slate-400"></i><span x-text="i.area"></span></div>
+                      <div class="flex items-center gap-1.5"><i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i><span x-text="i.dept"></span></div>
+                    </div>
+                    <div class="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+                      <span class="font-mono text-[10px] font-bold text-slate-400" x-text="i.ref"></span>
+                      <div class="flex gap-1">
+                        <button class="h-6 w-6 grid place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600" @click="moveIssue(i,-1)" title="Move left"><i data-lucide="chevron-left" class="w-3.5 h-3.5"></i></button>
+                        <button class="h-6 w-6 grid place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600" @click="moveIssue(i,1)" title="Move right"><i data-lucide="chevron-right" class="w-3.5 h-3.5"></i></button>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <p x-show="colIssues(col).length===0" class="text-center text-[11px] font-semibold text-slate-400 py-6">No cards match the filters</p>
+              </div>
+            </div>
+          </template>
+        </div>
+        <p class="text-xs text-slate-400 font-semibold text-center">Showing an 18-card working sample of the full register — <span x-text="ISSUES.length"></span> issues logged lifetime. Complete register available under Reports.</p>
+      </div>
+    </template>
+
+    <!-- ================= WORKERS ================= -->
+    <template x-if="view==='workers'">
+      <div class="space-y-6 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Operations</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Workers</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Workers</h1>
+            <p class="text-sm text-slate-500 mt-1">Field network performance, task flow and recognition.</p>
+          </div>
+          <button class="btn-p" @click="toast('Onboarding flow — simulated in this prototype','info')"><i data-lucide="user-plus" class="w-4 h-4"></i>Add worker</button>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <template x-for="s in workerCards" :key="s.l">
+            <div class="card p-4 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200" :class="s.wide && 'col-span-2'">
+              <div class="flex items-center justify-between">
+                <div class="h-9 w-9 rounded-xl grid place-items-center" :class="TINT[s.tint]"><i :data-lucide="s.i" class="w-[18px] h-[18px]"></i></div>
+                <span class="flex items-center gap-1 text-[11px] font-extrabold px-1.5 py-0.5 rounded-md" :class="s.good ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'"><i :data-lucide="s.dir==='up'?'trending-up':'minus'" class="w-3 h-3"></i><span x-text="s.d"></span></span>
+              </div>
+              <div class="mt-2.5 text-xl font-extrabold tabular-nums text-slate-900" x-text="s.v"></div>
+              <div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400" x-text="s.l"></div>
+              <div x-show="s.wide" class="mt-2.5">
+                <div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400" :style="'width:'+(workerStats.done/3500*100)+'%'"></div></div>
+                <div class="mt-1 text-[11px] text-slate-400 font-semibold">87% of the 4,000-task seasonal goal</div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6">
+            <div class="flex items-center justify-between">
+              <div><h2 class="text-base font-extrabold text-slate-900">Top Performers</h2><p class="text-xs text-slate-500 mt-0.5">Ranked by tasks completed this quarter</p></div>
+              <i data-lucide="medal" class="w-5 h-5 text-amber-500"></i>
+            </div>
+            <div class="mt-4 space-y-3">
+              <template x-for="(w,ri) in leaderboard" :key="'lb'+w.id">
+                <div class="flex items-center gap-3">
+                  <span class="h-8 w-8 rounded-lg grid place-items-center text-xs font-extrabold shrink-0"
+                    :class="ri===0 ? 'bg-amber-100 text-amber-700' : ri===1 ? 'bg-slate-100 text-slate-500' : ri===2 ? 'bg-orange-50 text-orange-600' : 'bg-white ring-1 ring-slate-200 text-slate-400'" x-text="ri+1"></span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2"><span class="text-[13px] font-bold text-slate-800 truncate" x-text="w.name"></span><span class="text-xs font-extrabold tabular-nums text-slate-700 shrink-0" x-text="w.done"></span></div>
+                    <div class="flex items-center gap-2 mt-1"><span class="h-1.5 rounded-full bg-teal-500 flex-1" :style="'max-width:'+(w.done/leaderboard[0].done*100)+'%'"></span><span class="text-[10.5px] font-semibold text-slate-400 shrink-0" x-text="w.ward"></span></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <div class="flex items-center justify-between">
+              <div><h2 class="text-base font-extrabold text-slate-900">Recent Activities</h2><p class="text-xs text-slate-500 mt-0.5">Live feed from the field network</p></div>
+              <span class="badge bg-emerald-50 text-emerald-700 ring-emerald-600/20"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>Live</span>
+            </div>
+            <div class="mt-4 space-y-0 relative before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-slate-100">
+              <template x-for="(a,i) in ACTIVITIES" :key="'act'+i">
+                <div class="relative flex gap-3.5 py-2">
+                  <span class="h-[30px] w-[30px] rounded-full bg-white ring-1 ring-slate-200 grid place-items-center text-teal-600 shrink-0 z-10"><i :data-lucide="a.i" class="w-3.5 h-3.5"></i></span>
+                  <div class="min-w-0 flex-1"><p class="text-[13px] text-slate-600 leading-snug"><b class="font-bold text-slate-800" x-text="a.txt"></b></p><p class="text-[10.5px] font-semibold text-slate-400 mt-0.5" x-text="a.time"></p></div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+        <div class="card overflow-hidden">
+          <div class="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="text-base font-extrabold text-slate-900">Worker Register</h2><p class="text-xs text-slate-500 mt-0.5"><span x-text="shownWorkers.length"></span> of 50 workers</p></div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative"><i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"></i><input x-model="wq" placeholder="Search worker…" class="inp !h-9 !pl-9 w-52 text-[13px]"></div>
+              <button class="btn-s h-9 px-3 rounded-xl" :class="wOnly ? 'bg-teal-700 text-white' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:ring-slate-300'" @click="wOnly=!wOnly"><i data-lucide="activity" class="w-3.5 h-3.5"></i>Active today</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto border-t border-slate-100 max-h-[460px] overflow-y-auto">
+            <table class="w-full text-sm">
+              <thead class="sticky top-0 bg-slate-50/95 backdrop-blur border-b border-slate-200 z-10"><tr><th class="th">Worker</th><th class="th">Ward</th><th class="th">Booth</th><th class="th">Tasks done</th><th class="th">Pending</th><th class="th">Rating</th><th class="th">Status</th><th class="th">Contact</th></tr></thead>
+              <tbody class="divide-y divide-slate-100">
+                <template x-for="w in shownWorkers" :key="'wr'+w.id">
+                  <tr class="hover:bg-slate-50/80">
+                    <td class="td"><div class="flex items-center gap-2.5"><span class="h-8 w-8 rounded-lg bg-teal-50 text-teal-700 grid place-items-center text-[11px] font-extrabold shrink-0" x-text="w.name.split(' ').map(p=>p[0]).join('').slice(0,2)"></span><span class="font-bold text-slate-800" x-text="w.name"></span></div></td>
+                    <td class="td text-slate-600" x-text="w.ward"></td><td class="td font-mono text-xs text-slate-500" x-text="w.booth"></td>
+                    <td class="td tabular-nums font-semibold text-slate-700" x-text="w.done"></td><td class="td tabular-nums text-slate-600" x-text="w.pend"></td>
+                    <td class="td"><div class="flex items-center gap-0.5"><template x-for="st in 5" :key="'wr'+w.id+'s'+st"><i data-lucide="star" class="w-3 h-3" :class="st<=Math.round(w.rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200'"></i></template><span class="ml-1 text-[11px] font-bold tabular-nums text-slate-500" x-text="w.rating"></span></div></td>
+                    <td class="td"><span class="badge" :class="w.active ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-slate-100 text-slate-500 ring-slate-200'"><span class="h-1.5 w-1.5 rounded-full" :class="w.active ? 'bg-emerald-500' : 'bg-slate-400'"></span><span x-text="w.active ? 'On duty' : 'Off today'"></span></span></td>
+                    <td class="td font-mono text-xs text-slate-500" x-text="w.phone"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= CAMPAIGN PLANNER ================= -->
+    <template x-if="view==='campaign'">
+      <div class="space-y-6 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Operations</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Campaign</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Campaign Planner</h1>
+            <p class="text-sm text-slate-500 mt-1">Meetings, public events, government programmes, volunteer drives and awareness campaigns — one calendar.</p>
+          </div>
+          <button class="btn-p" @click="toast('Activity composer — simulated in this prototype','info')"><i data-lucide="plus" class="w-4 h-4"></i>New activity</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="(v,k) in ETC" :key="k">
+            <span class="badge" :class="v.chip"><span class="h-1.5 w-1.5 rounded-full" :class="v.dot"></span><span x-text="v.l"></span></span>
+          </template>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+          <div class="card p-5 sm:p-6 xl:col-span-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button class="h-8 w-8 grid place-items-center rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 text-slate-500" @click="calOffset--;buildCal()"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                <h2 class="text-base font-extrabold text-slate-900 min-w-[150px] text-center" x-text="calLabel"></h2>
+                <button class="h-8 w-8 grid place-items-center rounded-lg ring-1 ring-slate-200 hover:bg-slate-50 text-slate-500" @click="calOffset++;buildCal()"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+              </div>
+              <button x-show="calOffset!==0" class="btn-o !h-8 text-xs" @click="calOffset=0;buildCal()">Back to current month</button>
+            </div>
+            <div class="mt-4 grid grid-cols-7 gap-1.5 text-center">
+              <template x-for="d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']" :key="'dw'+d"><div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 py-1" x-text="d"></div></template>
+              <template x-for="(c,i) in calCells" :key="'cal'+i">
+                <div class="min-h-[74px] rounded-xl border p-1.5 text-left transition-colors"
+                  :class="c ? (calSel===c ? 'border-teal-500 bg-teal-50/60 ring-1 ring-teal-500/30 cursor-pointer' : 'border-slate-100 hover:border-slate-300 cursor-pointer bg-white') : 'border-transparent bg-slate-50/50'"
+                  @click="c && (calSel=c)">
+                  <div class="text-[11px] font-bold tabular-nums" :class="c && calSel===c ? 'text-teal-700' : 'text-slate-500'" x-text="c || ''"></div>
+                  <div class="mt-1 flex flex-wrap gap-1" x-show="c">
+                    <template x-for="(e,ei) in evsOn(c)" :key="'ev'+ei"><span class="h-1.5 w-1.5 rounded-full" :class="ETC[e.k].dot"></span></template>
+                  </div>
+                  <div class="mt-0.5 text-[9px] font-semibold text-slate-400 leading-tight truncate" x-show="c && evsOn(c).length===1" x-text="evsOn(c)[0] ? evsOn(c)[0].t : ''"></div>
+                </div>
+              </template>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-100">
+              <div class="flex items-center justify-between"><h3 class="text-sm font-extrabold text-slate-800">Day <span x-text="calSel"></span> schedule</h3><span class="text-[11px] font-bold text-slate-400" x-text="selEvs.length+' activity'+(selEvs.length===1?'':'ies')"></span></div>
+              <div class="mt-3 space-y-2">
+                <template x-for="e in selEvs" :key="'se'+e.t">
+                  <div class="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                    <span class="h-9 w-9 rounded-lg grid place-items-center shrink-0" :class="ETC[e.k].chip"><i :data-lucide="ETC[e.k].i" class="w-4 h-4"></i></span>
+                    <div class="min-w-0 flex-1"><div class="text-[13px] font-bold text-slate-800 truncate" x-text="e.t"></div><div class="text-[11px] text-slate-500 font-semibold" x-text="e.time+' · '+e.loc"></div></div>
+                    <span class="text-[11px] font-bold text-slate-400 tabular-nums" x-show="e.att" x-text="e.att+' expected'"></span>
+                  </div>
+                </template>
+                <div x-show="selEvs.length===0" class="rounded-xl border border-dashed border-slate-200 p-5 text-center">
+                  <p class="text-sm text-slate-400 font-semibold">No scheduled activities — a good day for an unannounced booth visit.</p>
+                  <button class="btn-o !h-8 text-xs mt-3" @click="toast('Booth visit proposal drafted (prototype)','ok')"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i>Propose outreach visit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Upcoming Schedule</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Next activities in <span x-text="calLabel"></span></p>
+            <div class="mt-4 space-y-3 max-h-[560px] overflow-y-auto pr-1">
+              <template x-for="e in upcoming" :key="'up'+e.t">
+                <div class="rounded-xl ring-1 ring-slate-200/70 p-3.5 hover:shadow-soft hover:-translate-y-0.5 transition-all duration-150 bg-white">
+                  <div class="flex items-center gap-2.5">
+                    <div class="h-10 w-10 rounded-lg bg-slate-50 ring-1 ring-slate-200 grid place-items-center leading-none shrink-0">
+                      <span class="text-[15px] font-extrabold text-slate-800 tabular-nums" x-text="e.d"></span>
+                      <span class="text-[8px] font-extrabold uppercase text-slate-400" x-text="monthShort"></span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="text-[13px] font-bold text-slate-800 leading-tight truncate" x-text="e.t"></div>
+                      <div class="text-[11px] text-slate-500 font-semibold mt-0.5" x-text="e.time+' · '+e.loc"></div>
+                    </div>
+                  </div>
+                  <div class="mt-2.5 flex items-center justify-between">
+                    <span class="badge" :class="ETC[e.k].chip" x-text="ETC[e.k].l"></span>
+                    <button class="btn-s text-teal-700 hover:bg-teal-50" @click="ics(e)"><i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>.ics</button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= SCHEMES ================= -->
+    <template x-if="view==='schemes'">
+      <div class="space-y-6 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Operations</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Schemes</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Scheme Coverage</h1>
+            <p class="text-sm text-slate-500 mt-1">Government scheme enrolment against verified beneficiary targets.</p>
+          </div>
+          <button class="btn-o" @click="exportSchemes()"><i data-lucide="download" class="w-4 h-4"></i>Download data</button>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="card p-5 sm:p-6 xl:col-span-2">
+            <h2 class="text-base font-extrabold text-slate-900">Coverage vs Target</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Enrolled beneficiaries as % of eligible target</p>
+            <div id="ch-schemes" class="mt-3"></div>
+          </div>
+          <div class="card p-5 sm:p-6 flex flex-col">
+            <h2 class="text-base font-extrabold text-slate-900">Portfolio Summary</h2>
+            <div class="mt-4 space-y-4 flex-1">
+              <div class="rounded-xl bg-slate-50 p-4"><div class="text-2xl font-extrabold tabular-nums text-slate-900" x-text="nfmt(schemeStats.en)"></div><div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 mt-0.5">Households enrolled</div></div>
+              <div class="rounded-xl bg-slate-50 p-4"><div class="text-2xl font-extrabold tabular-nums text-slate-900" x-text="schemeStats.pct+'%'"></div><div class="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400 mt-0.5">Blended coverage of <span x-text="nfmt(schemeStats.tg)"></span> targeted</div></div>
+              <div class="rounded-xl bg-amber-50 ring-1 ring-amber-600/10 p-4 flex items-start gap-3"><i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 mt-0.5 shrink-0"></i><p class="text-xs text-amber-800 font-semibold leading-relaxed"><span x-text="schemeStats.lag"></span> scheme(s) below 70% coverage — enrolment melas recommended (see Campaign Planner).</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <template x-for="s in SCHEMES" :key="'sc'+s.name">
+            <div class="card p-5 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200">
+              <div class="flex items-start justify-between">
+                <div class="h-10 w-10 rounded-xl grid place-items-center" :class="TINT[s.tint]"><i :data-lucide="s.i" class="w-5 h-5"></i></div>
+                <span class="badge" :class="s.pct>=80 ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : (s.pct>=70 ? 'bg-teal-50 text-teal-700 ring-teal-600/20' : 'bg-amber-50 text-amber-700 ring-amber-600/20')" x-text="s.status"></span>
+              </div>
+              <h3 class="mt-3 font-extrabold text-slate-900 leading-snug" x-text="s.name"></h3>
+              <p class="text-[11px] font-bold text-slate-400 mt-0.5" x-text="s.cat+' · '+s.dept"></p>
+              <div class="mt-3.5 flex items-baseline justify-between text-xs font-bold"><span class="text-slate-500 tabular-nums" x-text="nfmt(s.en)+' / '+nfmt(s.tg)"></span><span class="tabular-nums text-slate-900" x-text="s.pct+'%'"></span></div>
+              <div class="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full transition-all duration-700" :class="s.pct>=80 ? 'bg-emerald-500' : (s.pct>=70 ? 'bg-teal-500' : 'bg-amber-500')" :style="'width:'+s.pct+'%'"></div></div>
+              <button class="btn-o !h-8 !px-3 text-xs mt-4 w-full" @click="toast('Push plan drafted for '+s.name+' (prototype)','ok')"><i data-lucide="megaphone" class="w-3.5 h-3.5"></i>Create push plan</button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= PUBLIC FEEDBACK ================= -->
+    <template x-if="view==='feedback'">
+      <div class="space-y-6 view-in">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Operations</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Public Feedback</span></nav>
+            <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Public Feedback</h1>
+            <p class="text-sm text-slate-500 mt-1">What citizens are telling the office — sentiment, topics and response status.</p>
+          </div>
+          <button class="btn-o" @click="exportFeedback()"><i data-lucide="download" class="w-4 h-4"></i>Export CSV</button>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-5 items-start">
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Sentiment Mix</h2>
+            <div class="relative mt-2">
+              <div id="ch-fb"></div>
+              <div class="absolute inset-0 grid place-items-center pointer-events-none">
+                <div class="text-center"><div class="text-xl font-extrabold tabular-nums text-slate-900" x-text="fbStats.avg"></div><div class="text-[9.5px] font-extrabold uppercase tracking-widest text-slate-400">Avg rating</div></div>
+              </div>
+            </div>
+            <div class="mt-2 space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold"><span class="flex items-center gap-1.5 text-slate-600"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Positive</span><span class="tabular-nums text-slate-900" x-text="fbStats.pos"></span></div>
+              <div class="flex items-center justify-between text-xs font-bold"><span class="flex items-center gap-1.5 text-slate-600"><span class="h-2 w-2 rounded-full bg-slate-400"></span>Neutral</span><span class="tabular-nums text-slate-900" x-text="fbStats.neu"></span></div>
+              <div class="flex items-center justify-between text-xs font-bold"><span class="flex items-center gap-1.5 text-slate-600"><span class="h-2 w-2 rounded-full bg-rose-500"></span>Negative</span><span class="tabular-nums text-slate-900" x-text="fbStats.neg"></span></div>
+              <div class="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold"><span class="text-slate-500">Response rate</span><span class="tabular-nums text-teal-700" x-text="fbStats.replied+'%'"></span></div>
+            </div>
+          </div>
+          <div class="xl:col-span-3 space-y-4">
+            <div class="flex flex-wrap gap-2">
+              <template x-for="f in ['All','Positive','Neutral','Negative']" :key="'ff'+f">
+                <button class="btn-s h-9 px-4 rounded-xl" :class="fbFilter===f ? 'bg-slate-900 text-white' : 'bg-white ring-1 ring-slate-200 text-slate-600 hover:ring-slate-300'" @click="fbFilter=f" x-text="f"></button>
+              </template>
+            </div>
+            <div class="space-y-4">
+              <template x-for="f in fbList" :key="'fb'+f.id">
+                <div class="card p-5 hover:shadow-lift hover:-translate-y-0.5 transition-all duration-200">
+                  <div class="flex items-start gap-3.5">
+                    <span class="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 grid place-items-center text-xs font-extrabold shrink-0" x-text="f.n.split(' ').map(p=>p[0]).join('').slice(0,2)"></span>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-extrabold text-slate-900" x-text="f.n"></span>
+                        <span class="text-[11px] font-semibold text-slate-400" x-text="'Ward '+f.wardNo+' · '+f.booth+' · '+f.when"></span>
+                        <span class="ml-auto flex items-center gap-0.5"><template x-for="st in 5" :key="'fbs'+f.id+st"><i data-lucide="star" class="w-3.5 h-3.5" :class="st<=f.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'"></i></template></span>
+                      </div>
+                      <p class="mt-1.5 text-[13.5px] text-slate-600 leading-relaxed" x-text="'“'+f.txt+'”'"></p>
+                      <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <span class="badge bg-slate-100 text-slate-600 ring-slate-200" x-text="f.topic"></span>
+                        <span class="badge" :class="f.sent==='Positive' ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : (f.sent==='Neutral' ? 'bg-slate-100 text-slate-600 ring-slate-200' : 'bg-rose-50 text-rose-700 ring-rose-600/20')" x-text="f.sent"></span>
+                        <span x-show="f.replied" class="badge bg-teal-50 text-teal-700 ring-teal-600/20"><i data-lucide="check" class="w-3 h-3"></i>Responded</span>
+                        <button x-show="!f.replied" class="btn-s ml-auto text-teal-700 hover:bg-teal-50 h-7" @click="respond(f)"><i data-lucide="send" class="w-3 h-3"></i>Respond</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+            <div class="text-center" x-show="fbList.length < FEEDBACKS.length">
+              <button class="btn-o" @click="fbLimit+=8"><i data-lucide="chevron-down" class="w-4 h-4"></i>Load more feedback</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= REPORTS ================= -->
+    <template x-if="view==='reports'">
+      <div class="space-y-6 view-in">
+        <div>
+          <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Workspace</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Reports</span></nav>
+          <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Reports</h1>
+          <p class="text-sm text-slate-500 mt-1">Ready-to-share summaries of constituency operations.</p>
+        </div>
+        <div class="rounded-2xl bg-teal-50 ring-1 ring-teal-600/10 px-5 py-3.5 flex items-start sm:items-center gap-3">
+          <i data-lucide="shield-check" class="w-4 h-4 text-teal-600 shrink-0 mt-0.5 sm:mt-0"></i>
+          <p class="text-xs text-teal-800 font-semibold leading-relaxed">All exports are generated locally in your browser — <b>PDF</b> opens a print-ready document (use “Save as PDF”), <b>Excel</b> downloads a CSV file. No data leaves this device.</p>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <template x-for="r in REPORTS" :key="'rp'+r.id">
+            <div class="card p-5 sm:p-6 flex flex-col hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200">
+              <div class="flex items-start justify-between">
+                <div class="h-11 w-11 rounded-xl grid place-items-center" :class="r.tint"><i :data-lucide="r.icon" class="w-5 h-5"></i></div>
+                <span class="badge bg-slate-100 text-slate-500 ring-slate-200" x-text="r.rows"></span>
+              </div>
+              <h3 class="mt-3.5 font-extrabold text-slate-900" x-text="r.title"></h3>
+              <p class="mt-1.5 text-[13px] text-slate-500 leading-relaxed flex-1" x-text="r.desc"></p>
+              <div class="mt-4 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i><span x-text="r.upd"></span></span>
+                <div class="flex gap-2">
+                  <button class="btn-s bg-white ring-1 ring-slate-200 hover:ring-slate-300 text-slate-600" @click="printReport(r)"><i data-lucide="printer" class="w-3.5 h-3.5"></i>PDF</button>
+                  <button class="btn-s bg-slate-900 text-white hover:bg-slate-800" @click="exportCSV(r)"><i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>Excel</button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- ================= SETTINGS ================= -->
+    <template x-if="view==='settings'">
+      <div class="space-y-6 view-in">
+        <div>
+          <nav class="flex items-center gap-1.5 text-xs font-bold text-slate-400"><span>Workspace</span><i data-lucide="chevron-right" class="w-3 h-3"></i><span class="text-slate-600">Settings</span></nav>
+          <h1 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Settings</h1>
+          <p class="text-sm text-slate-500 mt-1">Office profile, notification and display preferences. Stored locally for this session.</p>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Office Profile</h2>
+            <div class="mt-4 space-y-4">
+              <div><label class="sechead block mb-1.5">Representative name</label><input class="inp w-full" x-model="set.name"></div>
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div><label class="sechead block mb-1.5">Office email</label><input class="inp w-full" x-model="set.email"></div>
+                <div><label class="sechead block mb-1.5">Helpline</label><input class="inp w-full" x-model="set.phone"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Notifications</h2>
+            <div class="mt-4 space-y-1">
+              <template x-for="p in prefRows" :key="p.k">
+                <div class="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0">
+                  <div><div class="text-sm font-bold text-slate-800" x-text="p.l"></div><div class="text-[11px] text-slate-400 font-semibold mt-0.5" x-text="p.d"></div></div>
+                  <button @click="set[p.k]=!set[p.k]" class="relative h-6 w-11 rounded-full transition-colors duration-200 shrink-0" :class="set[p.k] ? 'bg-teal-600' : 'bg-slate-200'">
+                    <span class="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200" :class="set[p.k] && 'translate-x-5'"></span>
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Display & Defaults</h2>
+            <div class="mt-4 grid sm:grid-cols-2 gap-4">
+              <div><label class="sechead block mb-1.5">Default landing page</label>
+                <select class="inp w-full font-semibold" x-model="set.landing"><template x-for="n in nav" :key="'sv'+n.id"><option :value="n.id" x-text="n.label"></option></template></select>
+              </div>
+              <div><label class="sechead block mb-1.5">Table density</label>
+                <select class="inp w-full font-semibold" x-model="set.density"><option>Comfortable</option><option>Compact</option></select>
+              </div>
+            </div>
+            <button class="btn-p mt-5" @click="toast('Preferences saved for this session (prototype)','ok')"><i data-lucide="check" class="w-4 h-4"></i>Save preferences</button>
+          </div>
+          <div class="card p-5 sm:p-6">
+            <h2 class="text-base font-extrabold text-slate-900">Data</h2>
+            <p class="text-xs text-slate-500 mt-1">Download the underlying sample datasets as CSV.</p>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <button class="btn-o !h-9 text-xs" @click="exportBooths()"><i data-lucide="download" class="w-3.5 h-3.5"></i>Booth master</button>
+              <button class="btn-o !h-9 text-xs" @click="exportIssues()"><i data-lucide="download" class="w-3.5 h-3.5"></i>Issue register (220)</button>
+              <button class="btn-o !h-9 text-xs" @click="exportWorkers()"><i data-lucide="download" class="w-3.5 h-3.5"></i>Worker register</button>
+            </div>
+            <div class="mt-4 rounded-xl bg-slate-50 p-3.5 flex items-start gap-3"><i data-lucide="info" class="w-4 h-4 text-slate-400 mt-0.5 shrink-0"></i><p class="text-xs text-slate-500 font-semibold leading-relaxed">The prototype keeps everything client-side; clearing your browser data resets all preferences.</p></div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+  </main>
+
+  <footer class="max-w-[1400px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-400">
+    <span>JanSetu v0.9 — frontend prototype · deterministic sample dataset generated locally</span>
+    <span class="flex items-center gap-1.5"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-teal-500"></i>No data leaves your browser</span>
+  </footer>
+</div>
+
+<!-- booth hover popover -->
+<div x-show="peek && !drawer" x-cloak class="fixed z-[70] pointer-events-none w-64 rounded-2xl bg-white shadow-lift ring-1 ring-slate-200 p-4"
+  :style="'left:'+peekXY.x+'px; top:'+peekXY.y+'px'" x-transition.opacity.duration.150ms>
+  <template x-if="peek">
+    <div>
+      <div class="flex items-center justify-between">
+        <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500" x-text="peek.code"></span>
+        <span class="badge" :class="SERV_BADGE[peek.status]"><span class="h-1.5 w-1.5 rounded-full" :class="DOT[peek.status]"></span><span x-text="STATUS_LB[peek.status]"></span></span>
+      </div>
+      <div class="mt-2 font-extrabold text-slate-900 text-sm leading-tight" x-text="peek.name"></div>
+      <div class="text-[11px] text-slate-400 font-semibold" x-text="'Ward '+peek.wardNo+' · '+peek.ward"></div>
+      <div class="mt-3 space-y-1.5 text-[11.5px] font-semibold">
+        <div class="flex justify-between"><span class="text-slate-400">Population</span><span class="tabular-nums text-slate-800" x-text="nfmt(peek.population)"></span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Open issues</span><span class="tabular-nums" :class="peek.openIssues>6?'text-rose-600':'text-slate-800'" x-text="peek.openIssues"></span></div>
+        <div class="flex justify-between"><span class="text-slate-400">Volunteer coverage</span><span class="tabular-nums text-slate-800" x-text="peek.coverage+'%'"></span></div>
+      </div>
+      <div class="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" :class="peek.coverage>=60?'bg-teal-500':(peek.coverage>=40?'bg-amber-500':'bg-rose-500')" :style="'width:'+peek.coverage+'%'"></div></div>
+      <div class="mt-2.5 flex items-center justify-between">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Service requests</span>
+        <span class="badge" :class="SERV[peek.serviceStatus]" x-text="peek.serviceStatus"></span>
+      </div>
+    </div>
+  </template>
+</div>
+
+<!-- booth drilldown drawer -->
+<div class="fixed inset-0 z-[65]" x-show="drawer" x-cloak>
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" x-show="drawer" x-transition:enter="transition-opacity duration-200" x-transition:enter-start="opacity-0" x-transition:leave="transition-opacity duration-150" x-transition:leave-end="opacity-0" @click="drawer=null"></div>
+  <aside class="absolute inset-y-0 right-0 w-full max-w-[480px] bg-slate-50 shadow-2xl flex flex-col"
+    x-transition:enter="transition-transform duration-300 ease-out" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform duration-200 ease-in" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
+    <template x-if="drawer">
+      <div class="flex flex-col h-full">
+        <header class="bg-white border-b border-slate-200 px-5 py-4 flex items-start gap-3 shrink-0">
+          <div class="h-11 w-11 rounded-xl grid place-items-center font-mono text-[11px] font-extrabold shrink-0" :class="HPILL[drawer.status]" x-text="drawer.code"></div>
+          <div class="min-w-0 flex-1">
+            <h3 class="font-extrabold text-slate-900 leading-tight" x-text="drawer.name"></h3>
+            <div class="mt-1 flex items-center gap-1.5 text-xs text-slate-500 font-semibold"><i data-lucide="map-pin" class="w-3 h-3"></i><span x-text="'Ward '+drawer.wardNo+' · '+drawer.ward"></span><span class="h-1 w-1 rounded-full bg-slate-300"></span><span x-text="drawer.prio+' priority'"></span></div>
+          </div>
+          <button @click="drawer=null" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-slate-100 text-slate-400 shrink-0"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </header>
+        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+          <!-- quick stats -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="rounded-xl bg-white ring-1 ring-slate-200/70 p-3"><div class="text-[15px] font-extrabold tabular-nums text-slate-900" x-text="nfmt(drawer.population)"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Population</div></div>
+            <div class="rounded-xl bg-white ring-1 ring-slate-200/70 p-3"><div class="text-[15px] font-extrabold tabular-nums text-slate-900" x-text="nfmt(drawer.voters)"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Voters</div></div>
+            <div class="rounded-xl bg-white ring-1 ring-slate-200/70 p-3"><div class="text-[15px] font-extrabold tabular-nums text-slate-900" x-text="drawer.participation+'%'"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Participation</div></div>
+          </div>
+          <!-- coverage + service -->
+          <div class="grid grid-cols-2 gap-3">
+            <div class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4 flex items-center gap-3">
+              <div class="relative h-16 w-16 rounded-full shrink-0" :style="'background:conic-gradient(#0d9488 '+(drawer.coverage*3.6)+'deg, #eef2f6 0)'">
+                <div class="absolute inset-[7px] bg-white rounded-full grid place-items-center"><span class="text-[13px] font-extrabold tabular-nums text-slate-900" x-text="drawer.coverage+'%'"></span></div>
+              </div>
+              <div><div class="text-[13px] font-extrabold text-slate-900 leading-tight">Volunteer coverage</div><div class="text-[11px] text-slate-500 font-semibold mt-0.5" x-text="drawer.volunteers+' active · '+drawer.needed+' needed'"></div></div>
+            </div>
+            <div class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+              <div class="flex items-center justify-between"><div class="text-[13px] font-extrabold text-slate-900">Service requests</div><span class="badge" :class="SERV[drawer.serviceStatus]" x-text="drawer.serviceStatus"></span></div>
+              <div class="mt-2.5 flex items-baseline gap-1.5"><span class="text-xl font-extrabold tabular-nums text-slate-900" x-text="drawer.openIssues"></span><span class="text-[11px] font-semibold text-slate-400">open</span><span class="text-[11px] font-semibold text-slate-400 ml-auto" x-text="drawer.resolved90+' closed (90d)'"></span></div>
+              <div class="mt-2 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" :style="'width:'+(drawer.resolved90/(drawer.resolved90+drawer.openIssues)*100)+'%'"></div></div>
+            </div>
+          </div>
+          <!-- demographics -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="users" class="w-3.5 h-3.5 text-teal-500"></i>Demographics (aggregated)</h4>
+            <div class="mt-3 flex h-2.5 rounded-full overflow-hidden bg-slate-100">
+              <div class="bg-teal-600" :style="'width:'+drawer.male+'%'"></div><div class="bg-amber-400" :style="'width:'+drawer.female+'%'"></div>
+            </div>
+            <div class="mt-1.5 flex justify-between text-[11px] font-bold"><span class="text-teal-700" x-text="'Male '+drawer.male+'%'"></span><span class="text-amber-600" x-text="'Female '+drawer.female+'%'"></span></div>
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div class="rounded-lg bg-slate-50 py-2"><div class="text-sm font-extrabold tabular-nums text-slate-900" x-text="drawer.youth+'%'"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Youth 18–35</div></div>
+              <div class="rounded-lg bg-slate-50 py-2"><div class="text-sm font-extrabold tabular-nums text-slate-900" x-text="drawer.seniors+'%'"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Seniors 60+</div></div>
+              <div class="rounded-lg bg-slate-50 py-2"><div class="text-sm font-extrabold tabular-nums text-slate-900" x-text="nfmt(drawer.households)"></div><div class="text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400">Households</div></div>
+            </div>
+          </section>
+          <!-- public services -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="wrench" class="w-3.5 h-3.5 text-teal-500"></i>Public services status</h4>
+            <div class="mt-3 space-y-2.5">
+              <template x-for="s in drawerServices" :key="s.n">
+                <div class="flex items-center gap-2.5">
+                  <span class="h-7 w-7 rounded-lg bg-slate-50 grid place-items-center text-slate-500 shrink-0"><i :data-lucide="s.i" class="w-3.5 h-3.5"></i></span>
+                  <span class="text-[12.5px] font-bold text-slate-700 flex-1" x-text="s.n"></span>
+                  <span class="text-[11px] font-semibold text-slate-400" x-text="s.note"></span>
+                  <span class="badge" :class="SERV2[s.k]" x-text="s.k"></span>
+                </div>
+              </template>
+            </div>
+          </section>
+          <!-- scheme coverage -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="package-check" class="w-3.5 h-3.5 text-teal-500"></i>Government scheme coverage</h4>
+            <div class="mt-3 space-y-3">
+              <template x-for="s in drawer.schemes" :key="'ds'+s.name">
+                <div>
+                  <div class="flex items-center justify-between text-xs font-bold"><span class="text-slate-700" x-text="s.name"></span><span class="tabular-nums text-slate-500" x-text="s.pct+'%'"></span></div>
+                  <div class="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full bg-teal-500" :style="'width:'+s.pct+'%'"></div></div>
+                </div>
+              </template>
+            </div>
+          </section>
+          <!-- infrastructure -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="hard-hat" class="w-3.5 h-3.5 text-teal-500"></i>Infrastructure issues</h4>
+            <div class="mt-3 grid grid-cols-2 gap-2.5">
+              <template x-for="f in infraList" :key="f.n">
+                <div class="rounded-xl bg-slate-50 p-3">
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5 text-[11px] font-extrabold text-slate-600"><i :data-lucide="f.i" class="w-3.5 h-3.5" :class="INFRA_T[f.k]"></i><span x-text="f.n"></span></span>
+                    <span class="text-[11px] font-extrabold tabular-nums" :class="INFRA_T[f.k]" x-text="f.v"></span>
+                  </div>
+                  <div class="mt-2 h-1.5 rounded-full bg-white overflow-hidden"><div class="h-full rounded-full" :class="INFRA_B[f.k]" :style="'width:'+f.v+'%'"></div></div>
+                  <div class="mt-1 text-[9.5px] font-extrabold uppercase tracking-wider text-slate-400" x-text="f.k==='good'?'Good condition':(f.k==='fair'?'Fair — monitor':'Critical — act')" x-cloak></div>
+                </div>
+              </template>
+            </div>
+          </section>
+          <!-- volunteer activity -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="activity" class="w-3.5 h-3.5 text-teal-500"></i>Volunteer activity</h4>
+            <div class="mt-3 space-y-2">
+              <template x-for="(a,i) in drawer.vacts" :key="'va'+i">
+                <div class="flex items-center gap-2.5 text-[12.5px]"><span class="h-1.5 w-1.5 rounded-full bg-teal-500 shrink-0"></span><span class="font-bold text-slate-700" x-text="a.t"></span><span class="ml-auto text-[11px] font-semibold text-slate-400" x-text="a.d"></span></div>
+              </template>
+            </div>
+          </section>
+          <!-- citizen feedback -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="message-square" class="w-3.5 h-3.5 text-teal-500"></i>Recent citizen feedback</h4>
+            <div class="mt-3 space-y-3">
+              <template x-for="(f,i) in drawer.fbacks" :key="'df'+i">
+                <div class="rounded-xl bg-slate-50 p-3">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="thumbs-up" class="w-3.5 h-3.5 text-emerald-500" x-show="f.sent==='Positive'"></i>
+                    <i data-lucide="minus" class="w-3.5 h-3.5 text-slate-400" x-show="f.sent==='Neutral'"></i>
+                    <i data-lucide="thumbs-down" class="w-3.5 h-3.5 text-rose-500" x-show="f.sent==='Negative'"></i>
+                    <span class="text-[11px] font-extrabold text-slate-700" x-text="f.n"></span>
+                    <span class="ml-auto text-[10.5px] font-semibold text-slate-400" x-text="f.d"></span>
+                  </div>
+                  <p class="mt-1.5 text-[12.5px] text-slate-600 leading-relaxed" x-text="'“'+f.txt+'”'"></p>
+                </div>
+              </template>
+            </div>
+          </section>
+          <!-- meetings -->
+          <section class="rounded-2xl bg-white ring-1 ring-slate-200/70 p-4">
+            <h4 class="flex items-center gap-2 sechead"><i data-lucide="calendar" class="w-3.5 h-3.5 text-teal-500"></i>Recent public meetings</h4>
+            <div class="mt-3 space-y-2">
+              <template x-for="(m,i) in drawer.meetings" :key="'dm'+i">
+                <div class="flex items-center gap-2.5">
+                  <span class="h-7 w-7 rounded-lg bg-teal-50 text-teal-700 grid place-items-center shrink-0"><i data-lucide="users" class="w-3.5 h-3.5"></i></span>
+                  <span class="text-[12.5px] font-bold text-slate-700 flex-1" x-text="m.t"></span>
+                  <span class="text-[11px] font-semibold text-slate-400" x-text="m.when"></span>
+                  <span class="text-[10.5px] font-extrabold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 tabular-nums" x-text="m.att+' att.'"></span>
+                </div>
+              </template>
+            </div>
+          </section>
+          <!-- suggested actions -->
+          <section class="rounded-2xl bg-teal-900 text-white p-4 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-teal-400/20 blur-2xl"></div>
+            <h4 class="relative flex items-center gap-2 sechead !text-teal-200/80"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-teal-300"></i>Suggested follow-up actions</h4>
+            <div class="relative mt-3 space-y-2.5">
+              <template x-for="(a,i) in followUps(drawer)" :key="'fu'+i">
+                <div class="flex items-start gap-3 rounded-xl bg-white/[0.07] ring-1 ring-white/10 p-3">
+                  <span class="h-5 w-5 rounded-md bg-teal-400/20 text-teal-300 grid place-items-center text-[10px] font-extrabold shrink-0 mt-0.5" x-text="i+1"></span>
+                  <div class="min-w-0 flex-1"><p class="text-[12.5px] font-semibold leading-snug" x-text="a.txt"></p><span class="mt-1 inline-block text-[9.5px] font-extrabold uppercase tracking-wider text-teal-300/80" x-text="a.tag"></span></div>
+                  <button class="btn-s shrink-0 text-teal-300 hover:bg-white/10" @click="toast('Task added to office plan (prototype)','ok')"><i data-lucide="plus" class="w-3 h-3"></i>Add</button>
+                </div>
+              </template>
+            </div>
+          </section>
+        </div>
+        <footer class="border-t border-slate-200 bg-white px-5 py-3.5 flex gap-2 shrink-0">
+          <button class="btn-p flex-1" @click="toast('Full booth report opens in the complete product (prototype)','info')"><i data-lucide="external-link" class="w-4 h-4"></i>Full booth report</button>
+          <button class="btn-o" @click="toast('Booth visit scheduled — see Campaign Planner (prototype)','ok')"><i data-lucide="calendar-plus" class="w-4 h-4"></i>Schedule visit</button>
+        </footer>
+      </div>
+    </template>
+  </aside>
+</div>
+
+<!-- toasts -->
+<div class="fixed bottom-5 right-5 z-[90] space-y-2 w-[320px] max-w-[calc(100vw-40px)]" x-cloak>
+  <template x-for="t in toasts" :key="t.id">
+    <div class="toast-in flex items-start gap-3 rounded-xl bg-slate-900 text-white pl-4 pr-3 py-3 shadow-lift ring-1 ring-white/10">
+      <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" x-show="t.type==='ok'"></i>
+      <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5" x-show="t.type==='info'"></i>
+      <p class="text-[12.5px] font-semibold leading-snug flex-1" x-text="t.msg"></p>
+      <button class="text-slate-500 hover:text-white shrink-0" @click="toasts=toasts.filter(x=>x.id!==t.id)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+    </div>
+  </template>
+</div>
+
+<script>
+/* ================= helpers & seeded data ================= */
+const F='"Plus Jakarta Sans",ui-sans-serif,sans-serif';
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=mulberry32(90210);
+const R=(a,b)=>Math.floor(a+rnd()*(b-a+1));
+const pick=a=>a[Math.floor(rnd()*a.length)];
+const clampN=(v,a,b)=>Math.min(b,Math.max(a,v));
+const MONTHS_S=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const dayAt=off=>{const d=new Date();d.setDate(d.getDate()+off);return d};
+const dstr=off=>{const d=dayAt(off);return d.getDate()+' '+MONTHS_S[d.getMonth()]};
+const nfmt=v=>Number(v).toLocaleString('en-IN');
+const fmtK=v=>v>=100000?(v/100000).toFixed(2)+' L':v>=1000?(v/1000).toFixed(1)+'K':''+v;
+
+const WARDS=['Gandhi Nagar','Nehru Colony','Model Town','Shastri Nagar','Patel Nagar','Civil Lines','Azad Market','Riverside','Old City','Vidya Vihar'].map((n,i)=>({id:i+1,name:n}));
+const VENUES=['Community Hall','Govt Primary School','Ward Office Annexe','Saraswati Vidyalaya','Market Committee Hall','Panchayat Bhavan','Public Library','Sports Pavilion','Anganwadi Centre','Municipal Auditorium','Polytechnic Gate','Bus Depot Office','Dispensary Block','Water Works Compound','Post Office Hall','Zila Parishad Hall','Mahila Mandal Bhavan','Railway Quarters Club','Krishi Bhavan','Town Hall Annexe','Fire Station Hall','Co-op Bank Hall','Corporation Park Pavilion','Nagar Nigam Zonal Office'];
+const MEET=['Ward Chaupal','Grievance Day','SHG Coordination Meet','Ward Committee Review','Town Hall Q&A','Youth Sports Meet Prep'];
+
+const SCHEMES_X=[
+ {name:'PM Awas Yojana (Urban)',cat:'Housing',dept:'Urban Dev',icon:'home',tint:'teal'},
+ {name:'Ayushman Bharat PM-JAY',cat:'Health',dept:'Health Dept',icon:'heart-pulse',tint:'rose'},
+ {name:'PM Ujjwala Yojana',cat:'Energy',dept:'OMC Partners',icon:'flame',tint:'amber'},
+ {name:'Jal Jeevan Mission',cat:'Water',dept:'Water Works',icon:'droplets',tint:'sky'},
+ {name:'National Social Assistance',cat:'Welfare',dept:'Social Justice',icon:'wallet',tint:'violet'},
+ {name:'NSP Scholarships',cat:'Education',dept:'Education Dept',icon:'graduation-cap',tint:'emerald'},
+ {name:'PM SVANidhi (Vendors)',cat:'Livelihood',dept:'Urban Dev',icon:'store',tint:'slate'}
+];
+
+const BOOTHS=VENUES.map((v,i)=>{
+  const wardNo=(i%10)+1, ward=WARDS[wardNo-1].name;
+  const population=R(3000,5200), voters=Math.round(population*0.64);
+  const participation=R(54,79), satisfaction=R(56,93);
+  const needed=Math.max(3,Math.round(population/900));
+  const volunteers=R(1,needed+4);
+  const coverage=clampN(Math.round(volunteers/needed*100),12,100);
+  const openIssues=R(1,9), resolved90=R(4,26);
+  const health=clampN(Math.round(participation*0.32+satisfaction*0.36+coverage*0.2+Math.max(0,100-openIssues*9)*0.12),30,95);
+  const status=health>=74?'strong':(health>=59?'competitive':'attention');
+  const prio=health<59?'High':(health<74?'Medium':'Low');
+  const male=R(46,53), female=100-male, youth=R(22,34), seniors=R(9,18), households=Math.round(population/4.3);
+  const infra={water:R(45,95),road:R(40,92),electricity:R(50,96),drainage:R(35,88),school:R(55,97),hospital:R(40,94)};
+  const serviceStatus=openIssues>=7?'Critical':(openIssues>=4?'Backlog':'On Track');
+  const meetings=Array.from({length:R(2,3)},()=>({t:pick(MEET),when:dstr(-R(2,45)),att:R(35,170)}));
+  const vacts=Array.from({length:R(2,3)},()=>({t:pick(['Door-to-door survey','Grievance collection drive','Volunteer huddle','Scheme enrolment desk','Feedback round']),d:dstr(-R(1,25))}));
+  const fbacks=Array.from({length:R(2,3)},()=>({n:pick(['Shalini D.','Mohan L.','Farida K.','Ramesh P.','Geeta S.','Iqbal A.','Saroj B.','Deepak M.']),sent:pick(['Positive','Neutral','Negative']),txt:pick(['The community hall was cleaned up nicely before the camp.','Still waiting on the drainage work promised last month.','The ward office staff were helpful with my pension papers.','Street lights near the school are fixed ? thank you.','Water tanker schedule needs to be more predictable.']),d:dstr(-R(1,18))}));
+  const schIdx=new Set();while(schIdx.size<3)schIdx.add(R(0,6));
+  const schemes=[...schIdx].map(x=>SCHEMES_X[x]);
+  return {id:i+1,code:'B-'+String(i+1).padStart(2,'0'),name:v,wardNo,ward,population,voters,participation,satisfaction,needed,volunteers,coverage,openIssues,resolved90,health,status,prio,male,female,youth,seniors,households,infra,serviceStatus,meetings,vacts,fbacks,schemes};
+});
+
+const SCHEMES=SCHEMES_X.map(s=>{
+  const tg=R(2800,12400), pct=R(58,92), en=Math.round(tg*pct/100);
+  return {...s,tg,en,pct,status:pct>=80?'On track':(pct>=70?'Steady':'Needs push')};
+});
+BOOTHS.forEach(b=>{b.schemes=b.schemes.map(s=>({name:s.name,pct:clampN(s.pct+R(-16,8),20,99)}))});
+const CATS=[
+ ['Water Supply','Water Works',['Irregular water supply in {a}','Pipeline leakage reported in {a}','Low water pressure complaints from {a}','Contaminated water complaint in {a}','New borewell / tanker request in {a}']],
+ ['Roads & Transport','PWD',['Potholes on main stretch in {a}','Road resurfacing demand in {a}','Broken footpath reported in {a}','Bus route gap flagged in {a}','Traffic bottleneck near {a}']],
+ ['Electricity','Discom',['Frequent power cuts in {a}','Transformer overload in {a}','Street light outage in {a}','Loose cable hazard reported in {a}','Meter billing dispute in {a}']],
+ ['Drainage & Sewage','Sewerage Board',['Open drain overflow in {a}','Blocked sewer line in {a}','Waterlogging after rains in {a}','Septic overflow reported in {a}','Desilting demand raised in {a}']],
+ ['Sanitation','Municipal Corp',['Garbage collection gap in {a}','Overflowing community bins in {a}','Stray animal nuisance in {a}','Public toilet upkeep issue in {a}','Waste segregation drive sought in {a}']],
+ ['Health Services','Health Dept',['Dispensary medicine shortage in {a}','Vaccination camp request in {a}','Ambulance response delay in {a}','Mosquito control demand in {a}','Health check-up camp sought in {a}']],
+ ['Education','Education Dept',['Classroom repairs pending in {a}','Teacher vacancy reported in {a}','Mid-day meal quality flagged in {a}','Scholarship help desk sought in {a}','Playground upgrade request in {a}']],
+ ['Street Lighting','Municipal Corp',['Dark stretch concerns in {a}','LED retrofit pending in {a}','Pole damage reported in {a}','New lighting request in {a}','Timer fault on lights in {a}']]
+];
+const ISSUES=Array.from({length:220},(_,i)=>{
+  const cat=pick(CATS), b=pick(BOOTHS);
+  const r=rnd();
+  const stage=r<0.22?'reported':(r<0.42?'assigned':(r<0.66?'inprogress':'resolved'));
+  const age=R(1,45);
+  const prio=rnd()<0.25?'High':(rnd()<0.7?'Medium':'Low');
+  return {id:i+1,ref:'ISS-'+(1000+i),cat:cat[0],dept:cat[1],title:pick(cat[2]).replace('{a}',b.ward),area:b.ward,booth:b.code,stage,age,prio,created:dstr(-age)};
+});
+const KANBAN=[
+ ...ISSUES.filter(i=>i.stage==='reported').slice(0,5),
+ ...ISSUES.filter(i=>i.stage==='assigned').slice(0,5),
+ ...ISSUES.filter(i=>i.stage==='inprogress').slice(0,4),
+ ...ISSUES.filter(i=>i.stage==='resolved').slice(0,4)];
+const DEPTS=[...new Set(CATS.map(c=>c[1]))];
+
+const FIRSTS=['Aarav','Priya','Rahul','Sneha','Vikram','Anjali','Rohit','Kavita','Amit','Deepika','Suresh','Meena','Arjun','Pooja','Karthik','Neha','Manoj','Divya','Sandeep','Ritu','Vivek','Shalini','Nikhil','Asha','Gaurav','Lakshmi','Rakesh','Sunita','Prakash','Ananya','Mohit','Rekha','Ajay','Swati','Dinesh','Kirti','Rajesh','Nisha','Vikas','Hema','Sanjay','Bhavna','Manish','Priyanka','Tarun','Geeta','Naresh','Farah','Omprakash','Sheetal'];
+const LASTS=['Sharma','Verma','Yadav','Gupta','Singh','Mishra','Kumar','Joshi','Patel','Reddy','Iyer','Nair','Mehta','Bhatt','Shah'];
+const WORKERS=Array.from({length:50},(_,i)=>{
+  const done=R(8,120);
+  return {id:i+1,name:FIRSTS[i]+' '+LASTS[i%15],ward:WARDS[i%10].name,booth:BOOTHS[(i*7)%24].code,done,pend:R(0,9),active:rnd()<0.62,rating:(3.9+rnd()*1.1).toFixed(1),phone:'98'+R(10000000,99999999),joined:pick(['Jan 2024','Aug 2023','Mar 2024','Nov 2023','Jun 2024','Feb 2025'])};
+});
+const ACTIVITIES=Array.from({length:9},(_,i)=>{
+  const w=pick(WORKERS), b=pick(BOOTHS), ref=pick(ISSUES);
+  const t=pick([
+   {i:'clipboard-check',txt:w.name+' marked '+ref.ref+' ('+ref.cat+') as in progress in '+b.ward},
+   {i:'map',txt:w.name+' completed a door-to-door survey at '+b.code+' — '+b.name},
+   {i:'user-plus',txt:w.name+' added 3 new volunteers to '+b.code},
+   {i:'check-circle-2',txt:w.name+' resolved a water complaint '+pick(ISSUES).ref+' in '+b.ward},
+   {i:'calendar',txt:w.name+' scheduled a ward chaupal at '+b.name},
+   {i:'message-square',txt:w.name+' submitted 12 feedback entries from '+b.ward},
+   {i:'heart-pulse',txt:w.name+' coordinated health-camp registration at '+b.name},
+   {i:'phone',txt:w.name+' followed up with the department on '+ref.cat.toLowerCase()+' in '+b.ward}]);
+  return {...t,time:pick(['4 min ago','18 min ago','32 min ago','1 hr ago','2 hr ago','3 hr ago','5 hr ago','Yesterday'])};
+});
+
+const TOPICS=['Sanitation','Water supply','Road works','Street lighting','Scheme help','Staff behaviour','Health camp','Drainage'];
+const FB_TXT={
+ Positive:['The new street lights were installed quickly. Thank you.','Water tanker arrived on time this week — big relief.','Health camp at our booth was well organised.','Scheme help desk cleared my pending application in one visit.','Road patching near the school was done neatly.'],
+ Neutral:['Requested an update on the drainage desilting plan.','Asked about pension verification dates at the ward office.','Submitted documents for scholarship renewal — awaiting status.','Enquired about the bus route extension proposal.','Attended the chaupal; awaiting minutes of the discussion.'],
+ Negative:['Overflowing drain near the market has not been cleared for 9 days.','Street lights on the main road are non-functional for 3 weeks.','Water supply has been irregular for the past 10 days in our lane.','Garbage collection was missed twice this week.','Ambulance took over 40 minutes last night.']};
+const FEEDBACKS=Array.from({length:40},(_,i)=>{
+  const sent=rnd()<0.5?'Positive':(rnd()<0.55?'Neutral':'Negative');
+  const rating=sent==='Positive'?R(4,5):(sent==='Neutral'?3:R(1,2));
+  const b=pick(BOOTHS);
+  return {id:i+1,n:FIRSTS[(i*7)%50]+' '+LASTS[(i*3+1)%15],wardNo:b.wardNo,ward:b.ward,booth:b.code,topic:pick(TOPICS),sent,rating,txt:pick(FB_TXT[sent]),when:dstr(-R(0,21)),replied:rnd()<0.4};
+});
+
+const ETC={
+ meeting:{l:'Meeting',i:'users',chip:'bg-teal-100 text-teal-700',dot:'bg-teal-500'},
+ event:{l:'Public event',i:'flag',chip:'bg-violet-100 text-violet-700',dot:'bg-violet-500'},
+ program:{l:'Govt programme',i:'landmark',chip:'bg-amber-100 text-amber-700',dot:'bg-amber-500'},
+ drive:{l:'Volunteer drive',i:'user-plus',chip:'bg-emerald-100 text-emerald-700',dot:'bg-emerald-500'},
+ awareness:{l:'Awareness',i:'megaphone',chip:'bg-sky-100 text-sky-700',dot:'bg-sky-500'}};
+const EVENTS=[
+ {d:2,t:'Ward Chaupal — Gandhi Nagar',k:'meeting',time:'5:30 PM',loc:'Community Hall',att:120},
+ {d:4,t:'Free Health Screening Camp',k:'program',time:'9:00 AM',loc:'Civil Lines Dispensary',att:300},
+ {d:6,t:'Weekend Volunteer Drive',k:'drive',time:'8:00 AM',loc:'Riverside Promenade',att:60},
+ {d:8,t:'Road Safety Awareness Walk',k:'awareness',time:'7:00 AM',loc:'Model Town Main Road',att:200},
+ {d:10,t:'Jan Chaupal — Old City',k:'meeting',time:'6:00 PM',loc:'Public Library Hall',att:150},
+ {d:12,t:'Scheme Enrolment Mela',k:'program',time:'10:00 AM',loc:'Patel Nagar Community Centre',att:450},
+ {d:15,t:'Volunteer Training Session',k:'drive',time:'4:00 PM',loc:'Constituency Office',att:80},
+ {d:18,t:'Water Conservation Week (Day 1)',k:'awareness',time:'All day',loc:'Constituency-wide',att:0},
+ {d:20,t:'Community Sports Meet',k:'event',time:'3:00 PM',loc:'Model Town Grounds',att:600},
+ {d:22,t:'Ward Chaupal — Vidya Vihar',k:'meeting',time:'5:30 PM',loc:'Govt Primary School',att:110},
+ {d:24,t:'Senior Citizen Health Camp',k:'program',time:'9:00 AM',loc:'Nehru Colony Anganwadi',att:220},
+ {d:26,t:'Monsoon Preparedness Drive',k:'drive',time:'8:00 AM',loc:'Riverside & Old City',att:90},
+ {d:27,t:'Senior Citizens Chaupal',k:'meeting',time:'4:00 PM',loc:'Shastri Nagar Bhavan',att:70},
+ {d:28,t:'Electoral Roll Verification Camp',k:'program',time:'10:00 AM',loc:'All ward offices',att:0}];
+
+const INSIGHTS=[
+ {tag:'Focus',title:'Service backlog is clustering in two wards',desc:'Wards 3 and 7 together hold a disproportionate share of unresolved water and drainage requests — both feed booths already flagged red.',conf:92,chips:['63 open requests','11-day avg pending','2 red booths']},
+ {tag:'Watch',title:'Volunteer coverage gap in outer booths',desc:'Five booths sit below 45% coverage, all in the outer wards. A single weekend induction drive could close most of the gap.',conf:88,chips:['5 booths under 45%','18 volunteers needed','Coverage avg 71%']},
+ {tag:'Watch',title:'Meeting attendance is softening',desc:'Average attendance across the last three chaupals is down versus the previous quarter — consider shifting venues closer to complaint clusters.',conf:81,chips:['96 → 79 avg attendees','3 events tracked']},
+ {tag:'Focus',title:'Sanitation feedback spike in Azad Market belt',desc:'Sanitation-related feedback volume is up sharply month-over-month. Route verification with the municipal zonal office is advisable.',conf:85,chips:['58 reports this month','2.4× vs last month']},
+ {tag:'Focus',title:'Infrastructure watchlist before monsoon',desc:'Drainage and road condition scores dip below 60 in seven booths. Pre-monsoon desilting and patch-work would dehydrate the complaint queue.',conf:90,chips:['7 booths below 60','Drainage avg 58']},
+ {tag:'Opportunity',title:'Where outreach will move the needle',desc:'Booths with satisfaction below 65% but decent coverage respond best to door-to-door service follow-ups — prioritise nine such booths.',conf:78,chips:['9 booths eligible','~4,100 households']}];
+
+const REPORTS=[
+ {id:'infra',icon:'hard-hat',tint:'bg-amber-50 text-amber-600',title:'Infrastructure Summary',desc:'Booth-level infrastructure scores across water, roads, power, drainage, schools and health facilities.',rows:'24 booths',upd:'Updated today'},
+ {id:'services',icon:'wrench',tint:'bg-teal-50 text-teal-600',title:'Public Services',desc:'Service delivery matrix per booth — water supply, power, waste collection, lighting and PHC access.',rows:'24 booths',upd:'Updated today'},
+ {id:'schemes',icon:'package-check',tint:'bg-emerald-50 text-emerald-600',title:'Scheme Coverage',desc:'Enrolment versus verified beneficiary targets for all seven tracked government schemes.',rows:'7 schemes',upd:'Updated today'},
+ {id:'feedback',icon:'message-square',tint:'bg-violet-50 text-violet-600',title:'Citizen Feedback',desc:'Full feedback digest with sentiment, ratings and response status for the last three weeks.',rows:'40 entries',upd:'Updated today'},
+ {id:'volunteers',icon:'users',tint:'bg-sky-50 text-sky-600',title:'Volunteer Activities',desc:'Worker-wise task completion, pending load and duty status across the field network.',rows:'50 workers',upd:'Updated today'},
+ {id:'monthly',icon:'file-text',tint:'bg-slate-100 text-slate-600',title:'Monthly Constituency Report',desc:'Combined KPI, ward and issue summary — the standard pack shared with the office every month.',rows:'Full pack',upd:'Updated today'}];
+
+const NOTIFS=[
+ {i:'alert-triangle',tint:'rose',t:'Water backlog spike',d:'Azad Market belt crossed 20 open water-supply requests.',w:'12 min ago',u:true},
+ {i:'user-plus',tint:'emerald',t:'6 new volunteers onboarded',d:'Ward 7 booth coverage improved to 61%.',w:'1 hr ago',u:true},
+ {i:'calendar',tint:'teal',t:'Scheme Mela confirmed',d:'Patel Nagar venue booked for the 12th, 10 AM.',w:'3 hr ago',u:true},
+ {i:'message-square',tint:'violet',t:'Feedback surge',d:'Sanitation feedback volume is up 2.4× this week.',w:'Yesterday',u:true},
+ {i:'file-text',tint:'slate',t:'Monthly pack ready',d:'This month’s constituency report has been compiled.',w:'2 days ago',u:false}];
+
+const CTX={name:'Nagar Kshetra',code:'AC-092'};
+const CTX_LIST=[{name:'Nagar Kshetra',code:'AC-092',st:'Demo Pradesh'},{name:'Riverside',code:'AC-093',st:'Demo Pradesh'},{name:'Hill View',code:'AC-094',st:'Demo Pradesh'}];
+const SUM_POP=BOOTHS.reduce((s,b)=>s+b.population,0);
+const SUM_VOT=BOOTHS.reduce((s,b)=>s+b.voters,0);
+
+/* chart series data (deterministic) */
+const ML=Array.from({length:12},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-11+i);return d.toLocaleDateString('en-IN',{month:'short'})});
+const TREND_R=[18,16,19,22,17,21,24,20,23,25,22,26], TREND_S=[11,13,12,15,17,16,19,18,21,20,24,27];
+const VISITS=[320,410,380,460,520,490,560,610,580,650,700,760], NEWVOL=[12,15,11,18,22,16,25,28,20,31,26,34];
+const HEAT_D=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>({name:d,data:ML.map(()=>R(8,88))}));
+const DONUT_COLORS=['#0f766e','#14b8a6','#f59e0b','#8b5cf6','#f43f5e','#0ea5e9','#64748b','#10b981'];
+const WARD_PAL=['#0f766e','#0d9488','#14b8a6','#2dd4bf','#f59e0b','#fbbf24','#64748b','#94a3b8','#8b5cf6','#f43f5e'];
+
+/* ui maps */
+const TILE={strong:'border-emerald-200 bg-emerald-50/50 hover:border-emerald-400/70',competitive:'border-amber-200 bg-amber-50/50 hover:border-amber-400/70',attention:'border-rose-200 bg-rose-50/50 hover:border-rose-400/70'};
+const DOT={strong:'bg-emerald-500',competitive:'bg-amber-500',attention:'bg-rose-500'};
+const HPILL={strong:'bg-emerald-100 text-emerald-700',competitive:'bg-amber-100 text-amber-700',attention:'bg-rose-100 text-rose-700'};
+const STATUS_LB={strong:'Good',competitive:'Watch',attention:'Needs Attention'};
+const SERV_BADGE={strong:'bg-emerald-50 text-emerald-700 ring-emerald-600/20',competitive:'bg-amber-50 text-amber-700 ring-amber-600/20',attention:'bg-rose-50 text-rose-700 ring-rose-600/20'};
+const SERV={'On Track':'bg-emerald-50 text-emerald-700 ring-emerald-600/20','Backlog':'bg-amber-50 text-amber-700 ring-amber-600/20','Critical':'bg-rose-50 text-rose-700 ring-rose-600/20'};
+const SERV2={Good:'bg-emerald-50 text-emerald-700 ring-emerald-600/20',Fair:'bg-amber-50 text-amber-700 ring-amber-600/20',Poor:'bg-rose-50 text-rose-700 ring-rose-600/20'};
+const PRIO={High:'bg-rose-100 text-rose-700',Medium:'bg-amber-100 text-amber-700',Low:'bg-slate-100 text-slate-600'};
+const TINT={teal:'bg-teal-50 text-teal-600',emerald:'bg-emerald-50 text-emerald-600',amber:'bg-amber-50 text-amber-600',rose:'bg-rose-50 text-rose-600',violet:'bg-violet-50 text-violet-600',sky:'bg-sky-50 text-sky-600',slate:'bg-slate-100 text-slate-600'};
+const TAGC={Focus:'bg-amber-400/15 text-amber-300',Watch:'bg-sky-400/15 text-sky-300',Opportunity:'bg-emerald-400/15 text-emerald-300'};
+const KC={reported:{l:'Reported',d:'bg-rose-500'},assigned:{l:'Assigned',d:'bg-amber-500'},inprogress:{l:'In Progress',d:'bg-sky-500'},resolved:{l:'Resolved',d:'bg-emerald-500'}};
+const INFRA_B={good:'bg-emerald-500',fair:'bg-amber-500',bad:'bg-rose-500'};
+const INFRA_T={good:'text-emerald-600',fair:'text-amber-600',bad:'text-rose-600'};
+
+/* icon auto-refresh for Alpine-rendered nodes */
+let _ict=null;
+const _mo=new MutationObserver(()=>{clearTimeout(_ict);_ict=setTimeout(()=>{try{if(window.lucide&&document.querySelector('i[data-lucide]'))lucide.createIcons()}catch(e){}},60)});
+_mo.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['data-lucide']});
+try{window.lucide&&lucide.createIcons()}catch(e){}
+
+/* ================= Alpine app ================= */
+const CHARTS={};
+function app(){
+ return {
+  /* static data */
+  nav:[
+   {id:'dashboard',label:'Dashboard',icon:'layout-dashboard',group:'Overview'},
+   {id:'constituency',label:'Constituency',icon:'landmark',group:'Overview'},
+   {id:'booths',label:'Booth Analytics',icon:'map-pin',group:'Analytics'},
+   {id:'wards',label:'Ward Analytics',icon:'network',group:'Analytics'},
+   {id:'issues',label:'Issues',icon:'clipboard-list',group:'Operations'},
+   {id:'workers',label:'Workers',icon:'users',group:'Operations'},
+   {id:'campaign',label:'Campaign',icon:'calendar-days',group:'Operations'},
+   {id:'schemes',label:'Schemes',icon:'package-check',group:'Operations'},
+   {id:'feedback',label:'Public Feedback',icon:'message-square',group:'Operations'},
+   {id:'reports',label:'Reports',icon:'file-text',group:'Workspace'},
+   {id:'settings',label:'Settings',icon:'settings',group:'Workspace'}],
+  BOOTHS,WARDS,ISSUES,WORKERS,ACTIVITIES,FEEDBACKS,EVENTS,INSIGHTS,SCHEMES,REPORTS,DEPTS,KC,ETC,
+  TILE,DOT,HPILL,STATUS_LB,SERV_BADGE,SERV,SERV2,PRIO,TINT,TAGC,INFRA_B,INFRA_T,
+  sumPop:SUM_POP,sumVot:SUM_VOT,ctxList:CTX_LIST,
+  /* state */
+  view:'dashboard',collapsed:false,mobileNav:false,
+  q:'',searchFocus:false,notifOpen:false,profOpen:false,ctxOpen:false,
+  ctx:{...CTX},notifs:NOTIFS.map(n=>({...n})),drawer:null,
+  peek:null,peekXY:{x:0,y:0},toasts:[],_tid:0,
+  disp:{booths:0,strong:0,comp:0,atten:0,open:0,resolved:0,cov:0,health:0,ready:0},
+  bq:'',bWard:'All',bStatus:'All',sortKey:'health',sortDir:-1,jumpBooth:'',
+  kanban:KANBAN.map(i=>({...i})),dragging:null,dragOver:null,kDept:'All',kPrio:'All',
+  wq:'',wOnly:false,fbFilter:'All',fbLimit:8,
+  calOffset:0,calSel:new Date().getDate(),calCells:[],calLabel:'',monthShort:MONTHS_S[new Date().getMonth()],
+  analyzing:false,
+  set:{name:'Anand Rao',email:'office.rao@constituency.in',phone:'1800-180-4092',digest:true,alerts:true,weekly:false,fbAlerts:true,landing:'dashboard',density:'Comfortable'},
+  prefRows:[
+   {k:'digest',l:'Daily operations digest',d:'One morning email with KPIs and overnight issues.'},
+   {k:'alerts',l:'High-priority issue alerts',d:'Immediate ping when a red booth gains an issue.'},
+   {k:'weekly',l:'Weekly ward report',d:'Ward-level summary every Monday at 8 AM.'},
+   {k:'fbAlerts',l:'Negative feedback alerts',d:'Flag citizen feedback rated 1–2 stars.'}],
+  today:new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'}),
+
+  /* ---------- lifecycle ---------- */
+  init(){
+   this.buildCal();
+   this.$nextTick(()=>{
+    try{window.lucide&&lucide.createIcons()}catch(e){}
+    this.enterView('dashboard');
+   });
+   window.addEventListener('keydown',e=>{
+    if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)){e.preventDefault();const el=document.getElementById('gsearch');el&&el.focus();}
+   });
+  },
+  navigate(v){this.mobileNav=false;this.enterView(v);},
+  enterView(v){
+   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(e){}});
+   for(const k in CHARTS)delete CHARTS[k];
+   this.view=v;this.drawer=null;this.peek=null;
+   window.scrollTo({top:0,behavior:'smooth'});
+   setTimeout(()=>{this.renderCharts(v);try{window.lucide&&lucide.createIcons()}catch(e){}if(v==='dashboard')this.tweenKpis();},70);
+  },
+
+  /* ---------- KPIs ---------- */
+  kpiVals(){
+   const S=BOOTHS.filter(b=>b.status==='strong').length,C=BOOTHS.filter(b=>b.status==='competitive').length;
+   const open=ISSUES.filter(i=>i.stage!=='resolved').length;
+   const res=ISSUES.filter(i=>i.stage==='resolved'&&i.age<=30).length;
+   const cov=Math.round(BOOTHS.filter(b=>b.coverage>=60).length/BOOTHS.length*100);
+   const health=Math.round(BOOTHS.reduce((s,b)=>s+b.health,0)/BOOTHS.length);
+   const covAvg=Math.round(BOOTHS.reduce((s,b)=>s+b.coverage,0)/BOOTHS.length);
+   const satAvg=Math.round(BOOTHS.reduce((s,b)=>s+b.satisfaction,0)/BOOTHS.length);
+   const partAvg=Math.round(BOOTHS.reduce((s,b)=>s+b.participation,0)/BOOTHS.length);
+   const ready=clampN(Math.round(0.45*((S+0.6*C)/BOOTHS.length*100)+0.3*covAvg+0.25*satAvg),0,100);
+   return {booths:BOOTHS.length,strong:S,comp:C,atten:BOOTHS.length-S-C,open,resolved:res,cov,health,ready,covAvg,satAvg,partAvg};
+  },
+  get kpiTiles(){
+   const v=this.kpiVals();
+   return [
+    {k:'booths',label:'Total Booths',icon:'layout-grid',tint:'teal',spark:[21,21,22,22,23,23,24,24],sc:'#0d9488',delta:'+2 this qtr',dir:'up',good:true},
+    {k:'strong',label:'Strong Booths',icon:'shield-check',tint:'emerald',spark:[5,6,6,7,7,8,8,v.strong],sc:'#10b981',delta:'+1 vs last mo',dir:'up',good:true},
+    {k:'comp',label:'Competitive',icon:'flag',tint:'amber',spark:[10,9,10,10,9,10,v.comp,v.comp],sc:'#f59e0b',delta:'stable',dir:'flat',good:true},
+    {k:'atten',label:'Needs Attention',icon:'alert-triangle',tint:'rose',spark:[8,7,8,7,6,v.atten+1,v.atten+1,v.atten],sc:'#f43f5e',delta:'-2 vs last mo',dir:'down',good:true},
+    {k:'open',label:'Citizen Issues Open',icon:'inbox',tint:'violet',spark:[150,146,148,143,141,v.open+8,v.open+4,v.open],sc:'#8b5cf6',delta:'-8 vs last mo',dir:'down',good:true},
+    {k:'resolved',label:'Resolved This Month',icon:'check-circle-2',tint:'sky',spark:[18,21,19,24,22,26,25,v.resolved],sc:'#0ea5e9',delta:'+9 vs May',dir:'up',good:true},
+    {k:'cov',label:'Worker Coverage',icon:'users',tint:'teal',wide:true,spark:[62,64,63,66,68,67,70,v.cov],sc:'#0d9488',delta:'+4 pts',dir:'up',good:true}];
+  },
+  tweenKpis(){
+   const T=this.kpiVals(),start=performance.now(),dur=900;
+   const step=now=>{
+    const p=Math.min(1,(now-start)/dur),e=1-Math.pow(1-p,3);
+    for(const k of ['booths','strong','comp','atten','open','resolved','cov','health','ready'])this.disp[k]=Math.round(T[k]*e);
+    if(p<1)requestAnimationFrame(step);
+   };
+   requestAnimationFrame(step);
+  },
+  sp(vals){
+   const w=100,h=28,mn=Math.min(...vals),mx=Math.max(...vals),r=(mx-mn)||1,s=w/((vals.length-1)||1);
+   return vals.map((v,i)=>(i*s).toFixed(1)+','+(h-3-((v-mn)/r)*(h-6)).toFixed(1)).join(' ');
+  },
+
+  /* ---------- booth table ---------- */
+  get filteredBooths(){
+   let a=[...BOOTHS];const q=this.bq.trim().toLowerCase();
+   if(q)a=a.filter(b=>(b.name+' '+b.code+' '+b.ward).toLowerCase().includes(q));
+   if(this.bWard!=='All')a=a.filter(b=>b.ward===this.bWard);
+   if(this.bStatus!=='All')a=a.filter(b=>b.status===this.bStatus);
+   const k=this.sortKey,d=this.sortDir;
+   if(k)a.sort((x,y)=>(x[k]-y[k])*d);
+   return a;
+  },
+  sortBooths(k){if(this.sortKey===k){this.sortDir*=-1}else{this.sortKey=k;this.sortDir=-1}},
+
+  /* ---------- wards ---------- */
+  get wardRows(){
+   return WARDS.map(w=>{
+    const bs=BOOTHS.filter(b=>b.wardNo===w.id);
+    const pop=bs.reduce((s,b)=>s+b.population,0),vot=bs.reduce((s,b)=>s+b.voters,0);
+    const health=Math.round(bs.reduce((s,b)=>s+b.health,0)/bs.length);
+    const cov=Math.round(bs.reduce((s,b)=>s+b.coverage,0)/bs.length);
+    const open=bs.reduce((s,b)=>s+b.openIssues,0);
+    return {name:w.name,booths:bs.length,pop,voters:vot,health,cov,open,status:health>=74?'strong':(health>=59?'competitive':'attention')};
+   });
+  },
+  get spotlight(){
+   const r=[...this.wardRows].sort((a,b)=>b.health-a.health);
+   return {best:r[0],worst:r[r.length-1]};
+  },
+
+  /* ---------- issues ---------- */
+  get issueStats(){
+   const open=ISSUES.filter(i=>i.stage!=='resolved');
+   return {open:open.length,high:open.filter(i=>i.prio==='High').length,
+    avg:Math.round(open.reduce((s,i)=>s+i.age,0)/open.length),
+    rate:Math.round(ISSUES.filter(i=>i.stage==='resolved').length/ISSUES.length*100)};
+  },
+  colIssues(stage){return this.kanban.filter(i=>i.stage===stage&&(this.kDept==='All'||i.dept===this.kDept)&&(this.kPrio==='All'||i.prio===this.kPrio))},
+  moveIssue(i,dir){const order=['reported','assigned','inprogress','resolved'];const n=clampN(order.indexOf(i.stage)+dir,0,3);i.stage=order[n]},
+  dropTo(col){if(this.dragging==null)return;const it=this.kanban.find(k=>k.id===this.dragging);if(it)it.stage=col;this.dragging=null;this.dragOver=null},
+
+  /* ---------- workers ---------- */
+  get workerStats(){
+   const act=WORKERS.filter(w=>w.active).length;
+   return {total:WORKERS.length,act,inact:WORKERS.length-act,done:WORKERS.reduce((s,w)=>s+w.done,0),pend:WORKERS.reduce((s,w)=>s+w.pend,0)};
+  },
+  get workerCards(){
+   const s=this.workerStats;
+   return [
+    {l:'Total Workers',v:s.total,i:'users',tint:'teal',d:'+6 this qtr',dir:'up',good:true},
+    {l:'Active Today',v:s.act,i:'activity',tint:'emerald',d:s.act+' on duty',dir:'up',good:true},
+    {l:'Inactive',v:s.inact,i:'clock',tint:'slate',d:'weekly roster',dir:'flat',good:true},
+    {l:'Tasks Completed',v:nfmt(s.done),i:'check-circle-2',tint:'sky',d:'+214 this mo',dir:'up',good:true,wide:true},
+    {l:'Pending Tasks',v:s.pend,i:'inbox',tint:'amber',d:'within SLA',dir:'down',good:true}];
+  },
+  get leaderboard(){return [...WORKERS].sort((a,b)=>b.done-a.done).slice(0,8)},
+  get shownWorkers(){
+   let a=WORKERS;const q=this.wq.trim().toLowerCase();
+   if(q)a=a.filter(w=>(w.name+' '+w.ward+' '+w.booth).toLowerCase().includes(q));
+   if(this.wOnly)a=a.filter(w=>w.active);
+   return a;
+  },
+
+  /* ---------- feedback ---------- */
+  get fbStats(){
+   const pos=FEEDBACKS.filter(f=>f.sent==='Positive').length,neu=FEEDBACKS.filter(f=>f.sent==='Neutral').length;
+   return {pos,neu,neg:FEEDBACKS.length-pos-neu,avg:(FEEDBACKS.reduce((s,f)=>s+f.rating,0)/FEEDBACKS.length).toFixed(1),
+    replied:Math.round(FEEDBACKS.filter(f=>f.replied).length/FEEDBACKS.length*100)};
+  },
+  get fbList(){let a=FEEDBACKS;if(this.fbFilter!=='All')a=a.filter(f=>f.sent===this.fbFilter);return a.slice(0,this.fbLimit)},
+  respond(f){f.replied=true;this.toast('Response sent to '+f.n+' (prototype)','ok')},
+
+  /* ---------- schemes ---------- */
+  get schemeStats(){
+   const en=SCHEMES.reduce((s,x)=>s+x.en,0),tg=SCHEMES.reduce((s,x)=>s+x.tg,0);
+   return {en,tg,pct:Math.round(en/tg*100),lag:SCHEMES.filter(s=>s.pct<70).length};
+  },
+
+  /* ---------- booth analytics ---------- */
+  get boothStats(){
+   const covAvg=Math.round(BOOTHS.reduce((s,b)=>s+b.coverage,0)/BOOTHS.length);
+   return [
+    {l:'Avg coverage',v:covAvg+'%',i:'users',tint:'teal'},
+    {l:'Total volunteers',v:BOOTHS.reduce((s,b)=>s+b.volunteers,0),i:'user-plus',tint:'emerald'},
+    {l:'Booths ≥ 70% coverage',v:BOOTHS.filter(b=>b.coverage>=70).length,i:'shield-check',tint:'sky'},
+    {l:'Volunteer gap',v:BOOTHS.reduce((s,b)=>s+Math.max(0,b.needed-b.volunteers),0),i:'alert-triangle',tint:'rose'}];
+  },
+  get topCoverage(){return [...BOOTHS].sort((a,b)=>b.coverage-a.coverage).slice(0,5)},
+  get lowCoverage(){return [...BOOTHS].sort((a,b)=>a.coverage-b.coverage).slice(0,3)},
+  get constStats(){
+   const v=this.kpiVals();
+   return [
+    {l:'Population',v:fmtK(SUM_POP),i:'users',tint:'teal'},
+    {l:'Registered voters',v:fmtK(SUM_VOT),i:'vote',tint:'emerald'},
+    {l:'Households',v:nfmt(Math.round(SUM_POP/4.3)),i:'home',tint:'amber'},
+    {l:'Municipal wards',v:'10',i:'network',tint:'sky'},
+    {l:'Monitored booths',v:'24',i:'map-pin',tint:'violet'},
+    {l:'Avg booth size',v:nfmt(Math.round(SUM_VOT/BOOTHS.length)),i:'users',tint:'slate'}];
+  },
+  get ageMix(){return [{l:'Age 18–25',v:24},{l:'Age 26–40',v:31},{l:'Age 41–60',v:28},{l:'Age 60+',v:17}]},
+  get catStats(){
+   return CATS.map((c,ix)=>{const n=ISSUES.filter(i=>i.cat===c[0]).length;return {c:c[0],n,col:DONUT_COLORS[ix]}});
+  },
+
+  /* ---------- search ---------- */
+  get results(){
+   const q=this.q.trim().toLowerCase();if(q.length<2)return null;
+   return {
+    b:BOOTHS.filter(x=>(x.name+' '+x.code+' '+x.ward).toLowerCase().includes(q)).slice(0,4),
+    i:ISSUES.filter(x=>x.title.toLowerCase().includes(q)).slice(0,4),
+    w:WORKERS.filter(x=>x.name.toLowerCase().includes(q)).slice(0,3)};
+  },
+
+  /* ---------- drawer ---------- */
+  openBooth(b){this.drawer=b;window.lucide&&setTimeout(()=>{try{lucide.createIcons()}catch(e){}},30)},
+  get drawerServices(){
+   const k=v=>v>=70?'Good':(v>=50?'Fair':'Poor');
+   const f=this.drawer.infra;
+   return [
+    {n:'Water supply',i:'droplets',k:k(f.water),note:f.water+' / 100'},
+    {n:'Power supply',i:'zap',k:k(f.electricity),note:f.electricity+' / 100'},
+    {n:'Waste collection',i:'trash-2',k:k(this.drawer.coverage>=60?72:48),note:'weekly rounds'},
+    {n:'Street lighting',i:'lightbulb',k:k(f.road),note:f.road+' / 100'},
+    {n:'PHC access',i:'stethoscope',k:k(f.hospital),note:f.hospital+' / 100'}];
+  },
+  get infraList(){
+   const f=this.drawer.infra,mk=(n,i,v)=>({n,i,v,k:v>=70?'good':(v>=50?'fair':'bad')});
+   return [mk('Water','droplets',f.water),mk('Road','route',f.road),mk('Electricity','zap',f.electricity),mk('Drainage','waves',f.drainage),mk('School','graduation-cap',f.school),mk('Hospital','stethoscope',f.hospital)];
+  },
+  followUps(b){
+   if(b.status==='attention')return [
+    {txt:'Schedule a grievance chaupal at '+b.name+' within 7 days.',tag:'This week'},
+    {txt:'Deploy 4 additional volunteers for a door-to-door survey.',tag:'This week'},
+    {txt:'Escalate the top 3 open service requests to department heads.',tag:'Next 14 days'}];
+   if(b.status==='competitive')return [
+    {txt:'Host a scheme enrolment desk at the next ward meeting.',tag:'Next 14 days'},
+    {txt:'Pair with a strong booth for a volunteer cross-training session.',tag:'Next 14 days'},
+    {txt:'Close out open drainage requests before month-end.',tag:'This week'}];
+   return [
+    {txt:'Document the volunteer rotation model as a reusable playbook.',tag:'Ongoing'},
+    {txt:'Nominate the booth captain for ward-level coordination role.',tag:'This week'},
+    {txt:'Plan an appreciation meet for active workers and helpers.',tag:'Next 14 days'}];
+  },
+
+  /* ---------- misc UI ---------- */
+  toast(msg,type){const id=++this._tid;this.toasts.push({id,msg,type});setTimeout(()=>{this.toasts=this.toasts.filter(t=>t.id!==id)},3400)},
+  mapMove(e){this.peekXY={x:Math.min(e.clientX+16,window.innerWidth-272),y:Math.min(e.clientY+18,window.innerHeight-250)}},
+  setCtx(c){this.ctx={...c};this.toast('Context switched to '+c.name+' — sample dataset unchanged (prototype)','info')},
+  get unread(){return this.notifs.filter(n=>n.u).length},
+  markRead(){this.notifs.forEach(n=>n.u=false)},
+  refreshInsights(){
+   this.analyzing=true;
+   setTimeout(()=>{INSIGHTS.forEach(i=>{i.conf=clampN(i.conf+R(-3,3),60,97)});this.analyzing=false;this.toast('Analysis refreshed against latest service metrics','ok')},800);
+  },
+  copyHelpline(){
+   const done=()=>this.toast('Helpline number copied to clipboard','ok');
+   if(navigator.clipboard)navigator.clipboard.writeText('1800-180-4092').then(done,done);else done();
+  },
+  fmtK, nfmt,
+
+  /* ---------- calendar ---------- */
+  buildCal(){
+   const base=new Date(),d=new Date(base.getFullYear(),base.getMonth()+this.calOffset,1);
+   this.calLabel=d.toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+   const lead=(d.getDay()+6)%7,dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+   this.calCells=[...Array(lead).fill(null),...Array.from({length:dim},(_,i)=>i+1)];
+   this.calSel=this.calOffset===0?Math.min(base.getDate(),dim):1;
+  },
+  evsOn(d){return this.calOffset===0?EVENTS.filter(e=>e.d===d):[]},
+  get selEvs(){return this.evsOn(this.calSel)},
+  get upcoming(){if(this.calOffset!==0)return [];const td=new Date().getDate();return EVENTS.filter(e=>e.d>=td).sort((a,b)=>a.d-b.d)},
+  ics(ev){
+   const t=new Date(),y=t.getFullYear(),mm=String(t.getMonth()+1).padStart(2,'0'),dd=String(ev.d).padStart(2,'0');
+   const mt=ev.time.match(/(\d+):(\d+)\s*(AM|PM)/i);let hh=9,mi=0;
+   if(mt){hh=(+mt[1])%12+(mt[3].toUpperCase()==='PM'?12:0);mi=+mt[2];}
+   const pad=n=>String(n).padStart(2,'0');
+   const body=['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT','UID:'+Date.now()+'@jansetu','DTSTART:'+y+mm+dd+'T'+pad(hh)+pad(mi)+'00','DTEND:'+y+mm+dd+'T'+pad(Math.min(hh+2,23))+pad(mi)+'00','SUMMARY:'+ev.t,'LOCATION:'+ev.loc,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+   this.dl(ev.t.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40)+'.ics',body,'text/calendar');
+   this.toast('Calendar invite downloaded — '+ev.t,'ok');
+  },
+
+  /* ---------- exports ---------- */
+  dl(name,content,type){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),400)},
+  csv(rows){const q=v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return [rows.head.map(q).join(','),...rows.body.map(r=>r.map(q).join(','))].join('\n')},
+  reportRows(id){
+   const sv=b=>b.infra.water>=70?'Good':(b.infra.water>=50?'Fair':'Poor');
+   switch(id){
+    case 'infra':return {head:['Booth','Ward','Water','Road','Electricity','Drainage','School','Hospital','Health score','Status'],
+     body:BOOTHS.map(b=>[b.code,b.ward,b.infra.water,b.infra.road,b.infra.electricity,b.infra.drainage,b.infra.school,b.infra.hospital,b.health,STATUS_LB[b.status]])};
+    case 'services':return {head:['Booth','Ward','Water supply','Service status','Open issues','Coverage %','Satisfaction %'],
+     body:BOOTHS.map(b=>[b.code,b.ward,sv(b),b.serviceStatus,b.openIssues,b.coverage,b.satisfaction])};
+    case 'schemes':return {head:['Scheme','Category','Department','Enrolled','Target','Coverage %','Status'],
+     body:SCHEMES.map(s=>[s.name,s.cat,s.dept,s.en,s.tg,s.pct,s.status])};
+    case 'feedback':return {head:['#','Date','Citizen','Ward','Booth','Topic','Rating','Sentiment','Feedback'],
+     body:FEEDBACKS.map(f=>[f.id,f.when,f.n,f.ward,f.booth,f.topic,f.rating,f.sent,f.txt])};
+    case 'volunteers':return {head:['#','Worker','Ward','Booth','Tasks done','Pending','Rating','Status'],
+     body:WORKERS.map(w=>[w.id,w.name,w.ward,w.booth,w.done,w.pend,w.rating,w.active?'On duty':'Off today'])};
+    default:return {head:['Ward','Booths','Population','Voters','Avg health','Open issues'],
+     body:this.wardRows.map(w=>[w.name,w.booths,w.pop,w.voters,w.health,w.open])};
+   }
+  },
+  exportCSV(r){this.dl(r.id+'-report.csv','\ufeff'+this.csv(this.reportRows(r.id)),'text/csv');this.toast(r.title+' exported as CSV','ok')},
+  exportBooths(){this.dl('booth-master.csv','\ufeff'+this.csv({head:['Code','Name','Ward','Population','Voters','Participation %','Open issues','Volunteers','Coverage %','Satisfaction %','Health','Status','Priority'],body:BOOTHS.map(b=>[b.code,b.name,b.ward,b.population,b.voters,b.participation,b.openIssues,b.volunteers,b.coverage,b.satisfaction,b.health,STATUS_LB[b.status],b.prio])}),'text/csv');this.toast('Booth master exported as CSV','ok')},
+  exportIssues(){this.dl('issue-register.csv','\ufeff'+this.csv({head:['Ref','Title','Category','Department','Area','Booth','Stage','Priority','Age (days)','Created'],body:ISSUES.map(i=>[i.ref,i.title,i.cat,i.dept,i.area,i.booth,KC[i.stage].l,i.prio,i.age,i.created])}),'text/csv');this.toast('Issue register (220 records) exported','ok')},
+  exportWorkers(){this.dl('worker-register.csv','\ufeff'+this.csv({head:['#','Worker','Ward','Booth','Tasks done','Pending','Rating','Status','Phone'],body:WORKERS.map(w=>[w.id,w.name,w.ward,w.booth,w.done,w.pend,w.rating,w.active?'On duty':'Off today',w.phone])}),'text/csv');this.toast('Worker register exported','ok')},
+  exportSchemes(){this.dl('scheme-coverage.csv','\ufeff'+this.csv(this.reportRows('schemes')),'text/csv');this.toast('Scheme coverage data exported','ok')},
+  exportFeedback(){this.dl('citizen-feedback.csv','\ufeff'+this.csv(this.reportRows('feedback')),'text/csv');this.toast('Feedback digest exported','ok')},
+  printReport(r){
+   const w=window.open('','_blank','width=920,height=720');
+   if(!w){this.toast('Please allow pop-ups to generate the PDF','info');return}
+   const rows=this.reportRows(r.id);
+   const f=t=>new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+   w.document.write('<html><head><title>'+r.title+' — '+this.ctx.name+'</title><style>body{font-family:"Plus Jakarta Sans",Segoe UI,sans-serif;padding:44px;color:#0f172a}h1{font-size:21px;margin:0}h2{font-size:13px;color:#0d9488;margin:2px 0 0}.meta{color:#64748b;font-size:12px;margin-top:6px}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:11.5px}th{background:#f1f5f9;text-align:left;padding:8px;border-bottom:2px solid #e2e8f0;text-transform:uppercase;font-size:10px;letter-spacing:.06em;color:#475569}td{padding:7px 8px;border-bottom:1px solid #eef2f7}tr:nth-child(even) td{background:#fafcfd}.foot{margin-top:26px;color:#94a3b8;font-size:10.5px}</style></head><body>');
+   w.document.write('<h1>'+r.title+'</h1><h2>'+this.ctx.name+' ('+this.ctx.code+')</h2><div class="meta">Generated '+f(Date.now())+' · JanSetu prototype — deterministic sample dataset</div>');
+   w.document.write('<table><thead><tr>'+rows.head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.body.map(x=>'<tr>'+x.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table>');
+   w.document.write('<div class="foot">Use your browser print dialog → “Save as PDF” to archive this report. Prepared for internal planning; contains no outcome predictions.</div>');
+   w.document.close();w.focus();setTimeout(()=>w.print(),350);
+  },
+
+  /* ================= CHARTS ================= */
+  renderCharts(v){
+   if(!window.ApexCharts)return;
+   Object.values(CHARTS).forEach(c=>{try{c.destroy()}catch(e){}});
+   for(const k in CHARTS)delete CHARTS[k];
+   if(v==='dashboard'){this.chStatus();this.chDonut();this.chGauge();this.chTrend();this.chArea();this.chHbar();this.chHeat();this.chTimeline();}
+   if(v==='booths'){this.chScatter();this.chVolbar();}
+   if(v==='wards'){this.chWardBar();this.chWardDonut();}
+   if(v==='schemes'){this.chSchemes();}
+   if(v==='feedback'){this.chFb();}
+  },
+  mk(id,o){const el=document.getElementById(id);if(!el)return;try{const c=new ApexCharts(el,o);c.render();CHARTS[id]=c}catch(e){}},
+  chStatus(){
+   const per=WARDS.map(w=>{const bs=BOOTHS.filter(b=>b.wardNo===w.id);return [bs.filter(b=>b.status==='strong').length,bs.filter(b=>b.status==='competitive').length,bs.filter(b=>b.status==='attention').length]});
+   this.mk('ch-status',{chart:{type:'bar',stacked:true,height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:500}},
+    series:[{name:'Strong',data:per.map(p=>p[0])},{name:'Competitive',data:per.map(p=>p[1])},{name:'Needs attention',data:per.map(p=>p[2])}],
+    colors:['#10b981','#f59e0b','#f43f5e'],
+    plotOptions:{bar:{borderRadius:6,borderRadiusApplication:'end',columnWidth:'55%'}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:4},itemMargin:{horizontal:8}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{left:4,right:4,top:-10}},
+    xaxis:{categories:WARDS.map(w=>w.name),axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10.5px'},rotate:-38,rotateAlways:true,hideOverlappingLabels:false}},
+    yaxis:{min:0,forceNiceScale:true,labels:{formatter:v=>Math.round(v)}},
+    dataLabels:{enabled:false},tooltip:{theme:'light',y:{formatter:v=>v+' booths'}}});
+  },
+  chDonut(){
+   const cnt=this.catStats;
+   this.mk('ch-donut',{chart:{type:'donut',height:225,fontFamily:F,animations:{speed:500}},
+    series:cnt.map(x=>x.n),labels:cnt.map(x=>x.c),colors:DONUT_COLORS,
+    stroke:{width:2,colors:['#fff']},dataLabels:{enabled:false},legend:{show:false},
+    tooltip:{theme:'light',y:{formatter:v=>v+' issues'}},
+    plotOptions:{pie:{donut:{size:'72%'}}}});
+  },
+  chGauge(){
+   this.mk('ch-gauge',{chart:{type:'radialBar',height:185,fontFamily:F,sparkline:{enabled:true},animations:{speed:700}},
+    series:[this.kpiVals().health],colors:['#0d9488'],
+    plotOptions:{radialBar:{hollow:{size:'56%'},track:{background:'#f1f5f9',strokeWidth:'100%',margin:4},dataLabels:{show:false}}},
+    fill:{type:'gradient',gradient:{shade:'light',shadeIntensity:.3,gradientToColors:['#34d399'],stops:[0,100]}},
+    stroke:{lineCap:'round'}});
+  },
+  chTrend(){
+   this.mk('ch-trend',{chart:{type:'line',height:280,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:550}},
+    series:[{name:'Reported',data:TREND_R},{name:'Resolved',data:TREND_S}],
+    colors:['#f59e0b','#0d9488'],stroke:{width:2.5,curve:'smooth'},markers:{size:0,hover:{size:6}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{top:-6}},
+    xaxis:{categories:ML,axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'11px'}}},
+    yaxis:{min:0,labels:{formatter:v=>Math.round(v)}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:4}},
+    dataLabels:{enabled:false},tooltip:{theme:'light',y:{formatter:v=>v+' issues'}}});
+  },
+  chArea(){
+   this.mk('ch-area',{chart:{type:'area',height:280,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:550}},
+    series:[{name:'Field visits',data:VISITS},{name:'New volunteers',data:NEWVOL}],
+    colors:['#0d9488','#34d399'],stroke:{width:2.5,curve:'smooth'},
+    fill:{type:'gradient',gradient:{shadeIntensity:.5,opacityFrom:.28,opacityTo:.03}},
+    dataLabels:{enabled:false},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{top:-6}},
+    xaxis:{categories:ML,axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'11px'}}},
+    yaxis:{labels:{formatter:v=>Math.round(v)}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:4}},
+    tooltip:{theme:'light'}});
+  },
+  chHbar(){
+   const per=WARDS.map(w=>{const bs=BOOTHS.filter(b=>b.wardNo===w.id);return Math.round(bs.reduce((s,b)=>s+b.health,0)/bs.length)});
+   const col=h=>h>=74?'#10b981':(h>=59?'#f59e0b':'#f43f5e');
+   this.mk('ch-hbar',{chart:{type:'bar',height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:550}},
+    series:[{name:'Avg health',data:per}],colors:per.map(col),
+    plotOptions:{bar:{horizontal:true,borderRadius:6,borderRadiusApplication:'end',barHeight:'60%',distributed:true}},
+    dataLabels:{enabled:true,formatter:v=>v,style:{fontSize:'11px',fontWeight:700,colors:['#334155']},background:{enabled:false}},
+    xaxis:{min:0,max:100,tickAmount:5,axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'11px'}}},
+    yaxis:{labels:{style:{fontSize:'11.5px'},maxWidth:120}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{left:4,right:14}},
+    legend:{show:false},tooltip:{theme:'light',y:{title:{formatter:()=>'Avg health '},formatter:v=>v+' / 100'}}});
+  },
+  chHeat(){
+   this.mk('ch-heat',{chart:{type:'heatmap',height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:400}},
+    series:HEAT_D,dataLabels:{enabled:false},colors:['#0d9488'],
+    stroke:{width:3,colors:['#fff']},
+    plotOptions:{heatmap:{radius:4,enableShades:false,colorScale:{ranges:[
+     {from:0,to:15,color:'#eef4f6'},{from:16,to:30,color:'#d3ece7'},{from:31,to:45,color:'#a9dfd6'},
+     {from:46,to:60,color:'#79cdbf'},{from:61,to:75,color:'#3fae9f'},{from:76,to:100,color:'#0f766e'}]}}},
+    grid:{padding:{left:6,right:6,top:-12}},
+    xaxis:{categories:ML,axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10px'}}},
+    legend:{show:false},tooltip:{theme:'light',y:{formatter:v=>v+' outreach touches'}}});
+  },
+  chTimeline(){
+   const D=o=>Date.now()+o*864e5;
+   const items=[['Ward chaupals — round 1',0,9,'#0d9488'],['Scheme enrolment mela',3,6,'#f59e0b'],['Volunteer training cycle',5,14,'#10b981'],
+    ['Door-to-door outreach · Wards 3 & 7',7,21,'#0ea5e9'],['Health screening camps',11,19,'#8b5cf6'],
+    ['Water conservation week',17,24,'#f43f5e'],['Electoral roll verification',23,31,'#f59e0b'],['Community sports meet',27,32,'#8b5cf6']];
+   const fd=t=>new Date(t).toLocaleDateString('en-IN',{day:'numeric',month:'short'});
+   this.mk('ch-timeline',{chart:{type:'rangeBar',height:265,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:500}},
+    series:[{name:'Activities',data:items.map(it=>({x:it[0],y:[D(it[1]),D(it[2])],fillColor:it[3]}))}],
+    plotOptions:{bar:{horizontal:true,borderRadius:6}},
+    xaxis:{type:'datetime',labels:{datetimeUTC:false,format:'d MMM',style:{fontSize:'11px'}},axisBorder:{show:false},axisTicks:{show:false}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{left:8,right:24,top:-8}},
+    dataLabels:{enabled:false},legend:{show:false},
+    tooltip:{theme:'light',custom:({dataPointIndex})=>'<div style="padding:8px 12px;font-family:'+F+'"><b>'+items[dataPointIndex][0]+'</b><br><span style="color:#64748b;font-size:11px">'+fd(D(items[dataPointIndex][1]))+' → '+fd(D(items[dataPointIndex][2]))+'</span></div>'}});
+  },
+  chScatter(){
+   const groups=['strong','competitive','attention'];
+   const meta=groups.map(g=>BOOTHS.filter(b=>b.status===g));
+   this.mk('ch-scatter',{chart:{type:'scatter',height:330,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},zoom:{enabled:false},animations:{speed:500}},
+    series:groups.map(g=>({name:STATUS_LB[g],data:meta[groups.indexOf(g)].map(b=>({x:b.coverage,y:b.satisfaction}))})),
+    colors:['#10b981','#f59e0b','#f43f5e'],
+    markers:{size:8,strokeWidth:2,strokeColors:'#fff',hover:{size:11}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{top:-4}},
+    xaxis:{min:0,max:100,tickAmount:5,title:{text:'Volunteer coverage %',style:{fontSize:'11px',fontWeight:700}},labels:{formatter:v=>Math.round(v)+'%',style:{fontSize:'10.5px'}},axisBorder:{show:false},axisTicks:{show:false}},
+    yaxis:{min:40,max:100,tickAmount:5,title:{text:'Citizen satisfaction %',style:{fontSize:'11px',fontWeight:700}},labels:{formatter:v=>Math.round(v)+'%',style:{fontSize:'10.5px'}}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:5}},
+    tooltip:{theme:'light',custom:({seriesIndex,dataPointIndex})=>{const b=meta[seriesIndex][dataPointIndex];return '<div style="padding:8px 12px;font-family:'+F+'"><b>'+b.code+' · '+b.name+'</b><br><span style="font-size:11px;color:#64748b">'+b.ward+' — coverage '+b.coverage+'% · satisfaction '+b.satisfaction+'%</span></div>'}}});
+  },
+  chVolbar(){
+   this.mk('ch-volbar',{chart:{type:'bar',stacked:true,height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:500}},
+    series:[{name:'Active volunteers',data:BOOTHS.map(b=>b.volunteers)},{name:'Coverage gap',data:BOOTHS.map(b=>Math.max(0,b.needed-b.volunteers))}],
+    colors:['#0d9488','#e2e8f0'],
+    plotOptions:{bar:{borderRadius:4,borderRadiusApplication:'end',columnWidth:'68%'}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:4}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{top:-12}},
+    xaxis:{categories:BOOTHS.map(b=>b.code),axisBorder:{show:false},axisTicks:{show:false},labels:{rotate:-60,rotateAlways:true,style:{fontSize:'9.5px'}}},
+    yaxis:{labels:{formatter:v=>Math.round(v)}},
+    dataLabels:{enabled:false},tooltip:{theme:'light',y:{formatter:v=>Math.round(v)+' volunteers'}}});
+  },
+  chWardBar(){
+   const pops=WARDS.map(w=>BOOTHS.filter(b=>b.wardNo===w.id).reduce((s,b)=>s+b.population,0));
+   const vots=WARDS.map(w=>BOOTHS.filter(b=>b.wardNo===w.id).reduce((s,b)=>s+b.voters,0));
+   this.mk('ch-wardbar',{chart:{type:'bar',height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:500}},
+    series:[{name:'Population (000s)',data:pops.map(p=>+(p/1000).toFixed(1))},{name:'Registered voters (000s)',data:vots.map(p=>+(p/1000).toFixed(1))}],
+    colors:['#0f766e','#94a3b8'],
+    plotOptions:{bar:{borderRadius:6,borderRadiusApplication:'end',columnWidth:'55%'}},
+    legend:{position:'top',horizontalAlign:'right',fontSize:'12px',markers:{size:4}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{top:-10}},
+    xaxis:{categories:WARDS.map(w=>w.name),axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10.5px'},rotate:-38,rotateAlways:true,hideOverlappingLabels:false}},
+    yaxis:{labels:{formatter:v=>Math.round(v)}},
+    dataLabels:{enabled:false},tooltip:{theme:'light',y:{formatter:v=>v+'K people'}}});
+  },
+  chWardDonut(){
+   const pops=WARDS.map(w=>BOOTHS.filter(b=>b.wardNo===w.id).reduce((s,b)=>s+b.population,0));
+   this.mk('ch-warddonut',{chart:{type:'donut',height:250,fontFamily:F,animations:{speed:500}},
+    series:pops,labels:WARDS.map(w=>w.name),colors:WARD_PAL,
+    stroke:{width:2,colors:['#fff']},dataLabels:{enabled:false},legend:{show:false},
+    tooltip:{theme:'light',y:{formatter:v=>nfmt(v)+' people'}},
+    plotOptions:{pie:{donut:{size:'70%'}}}});
+  },
+  chSchemes(){
+   this.mk('ch-schemes',{chart:{type:'bar',height:300,fontFamily:F,foreColor:'#64748b',toolbar:{show:false},animations:{speed:550}},
+    series:[{name:'Coverage %',data:SCHEMES.map(s=>s.pct)}],
+    colors:SCHEMES.map(s=>s.pct>=80?'#10b981':(s.pct>=70?'#0d9488':'#f59e0b')),
+    plotOptions:{bar:{horizontal:true,borderRadius:6,borderRadiusApplication:'end',barHeight:'58%',distributed:true}},
+    dataLabels:{enabled:true,formatter:v=>v+'%',style:{fontSize:'11px',fontWeight:700,colors:['#334155']},background:{enabled:false}},
+    xaxis:{min:0,max:100,tickAmount:5,axisBorder:{show:false},axisTicks:{show:false},labels:{formatter:v=>Math.round(v)+'%',style:{fontSize:'11px'}}},
+    yaxis:{labels:{style:{fontSize:'11.5px'},maxWidth:190}},
+    grid:{borderColor:'#eef2f6',strokeDashArray:4,padding:{left:4,right:18}},
+    legend:{show:false},tooltip:{theme:'light',y:{title:{formatter:()=>'Coverage '},formatter:v=>v+'% of target'}}});
+  },
+  chFb(){
+   const s=this.fbStats;
+   this.mk('ch-fb',{chart:{type:'donut',height:200,fontFamily:F,animations:{speed:500}},
+    series:[s.pos,s.neu,s.neg],labels:['Positive','Neutral','Negative'],colors:['#10b981','#94a3b8','#f43f5e'],
+    stroke:{width:2,colors:['#fff']},dataLabels:{enabled:false},legend:{show:false},
+    tooltip:{theme:'light',y:{formatter:v=>v+' entries'}},
+    plotOptions:{pie:{donut:{size:'70%'}}}});
+  }
+ };
+}
+</script>
+</body>
+</html>
