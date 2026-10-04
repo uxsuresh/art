@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JanSetu · Constituency Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231f6448'/%3E%3Cpath d='M7.5 12.5l3 3 6-7' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={
+theme:{extend:{
+colors:{brand:{50:'#f0f9f4',100:'#dcf2e6',200:'#bce3cf',300:'#8ecfb1',400:'#5bb48d',500:'#37996f',600:'#267c59',700:'#1f6448',800:'#1b503b',900:'#174231'},cream:'#fbf8f1'},
+fontFamily:{sans:['"Instrument Sans"','sans-serif'],serif:['"Instrument Serif"','serif'],mono:['"JetBrains Mono"','monospace']},
+boxShadow:{card:'0 1px 2px rgba(28,25,23,.04), 0 12px 32px -20px rgba(28,25,23,.12)',pop:'0 4px 8px rgba(28,25,23,.05), 0 20px 40px -20px rgba(28,25,23,.18)'}
+}}
+};
+</script>
+<style>
+[x-cloak]{display:none!important}
+html.compact{font-size:14px}
+html.reduce-motion *,html.reduce-motion *::before,html.reduce-motion *::after{transition-duration:0s!important;animation-duration:0s!important}
+.card{background:#fff;border:1px solid rgba(231,229,228,.75);border-radius:1rem;box-shadow:0 1px 2px rgba(28,25,23,.04),0 12px 32px -20px rgba(28,25,23,.12)}
+.card-hover{transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s,border-color .25s}
+.card-hover:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(28,25,23,.05),0 20px 44px -18px rgba(28,25,23,.18);border-color:rgba(214,211,209,1)}
+.tnum{font-feature-settings:'tnum' 1}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.view-anim{animation:fadeUp .4s cubic-bezier(.2,.7,.3,1) both}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.toast-in{animation:toastIn .3s cubic-bezier(.2,.7,.3,1) both}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
+.pulse-dot{animation:pulseDot 2s ease-in-out infinite}
+.thin-scroll::-webkit-scrollbar{width:5px;height:5px}
+.thin-scroll::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:99px}
+.thin-scroll::-webkit-scrollbar-track{background:transparent}
+.tick-overlay{background-image:linear-gradient(90deg,#fff 1.5px,transparent 1.5px);background-size:5% 100%}
+.kanban-body.drag-over{background:#f0f9f4;outline:2px dashed #8ecfb1;outline-offset:-4px}
+.booth-card{transition:transform .2s,box-shadow .2s,border-color .2s}
+.booth-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(28,25,23,.25)}
+input[type=checkbox].act-check{accent-color:#1f6448;width:14px;height:14px}
+.cal-day{transition:background .15s}
+.cal-day:hover{background:#f5f5f4}
+</style>
+</head>
+<body class="bg-[#f6f6f4] font-sans text-stone-800 antialiased" x-data="app()" x-init="init()">
+
+<!-- ══════════ TOASTS ══════════ -->
+<div class="fixed bottom-5 right-5 z-[90] space-y-2 w-[320px] max-w-[calc(100vw-40px)]" x-cloak>
+<template x-for="t in toasts" :key="t.id">
+<div class="toast-in flex items-start gap-2.5 bg-stone-900 text-white rounded-xl px-3.5 py-3 shadow-pop">
+<i :data-lucide="t.icon" class="w-4 h-4 mt-px text-brand-300 shrink-0"></i>
+<p class="text-[13px] leading-snug" x-text="t.msg"></p>
+</div>
+</template>
+</div>
+
+<!-- ══════════ BOOTH HOVER TOOLTIP ══════════ -->
+<div id="boothTip" class="hidden fixed z-[80] pointer-events-none"></div>
+
+<!-- ══════════ MOBILE SIDEBAR ══════════ -->
+<div x-show="mobileOpen" x-cloak class="fixed inset-0 z-[55] lg:hidden">
+<div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="mobileOpen=false"></div>
+<aside class="absolute inset-y-0 left-0 w-72 bg-white shadow-pop flex flex-col transition-transform duration-300" :class="mobileOpen?'translate-x-0':'-translate-x-full'">
+<div class="h-16 flex items-center justify-between px-5 border-b border-stone-100">
+<div class="flex items-center gap-2.5">
+<div class="w-8 h-8 rounded-lg bg-brand-700 grid place-items-center text-white"><i data-lucide="vote" class="w-4.5 h-4.5 w-[18px] h-[18px]"></i></div>
+<div><p class="font-semibold text-[15px] leading-none">JanSetu</p><p class="text-[10px] text-stone-400 tracking-wide mt-0.5">CONSTITUENCY INTELLIGENCE</p></div>
+</div>
+<button class="p-2 rounded-lg hover:bg-stone-100" @click="mobileOpen=false"><i data-lucide="x" class="w-5 h-5 text-stone-500"></i></button>
+</div>
+<nav id="navMobile" class="flex-1 overflow-y-auto py-3 thin-scroll"></nav>
+</aside>
+</div>
+
+<!-- ══════════ DESKTOP SIDEBAR ══════════ -->
+<aside id="sidebar" class="hidden lg:flex fixed inset-y-0 left-0 z-40 bg-white border-r border-stone-200/70 flex-col transition-all duration-300" :class="sidebarCollapsed?'w-[76px]':'w-64'">
+<div class="h-16 flex items-center gap-2.5 px-4 border-b border-stone-100 shrink-0" :class="sidebarCollapsed?'justify-center px-0':'justify-between'">
+<div class="flex items-center gap-2.5 min-w-0">
+<div class="w-8 h-8 rounded-lg bg-brand-700 grid place-items-center text-white shrink-0"><i data-lucide="vote" class="w-[18px] h-[18px]"></i></div>
+<div class="min-w-0" x-show="!sidebarCollapsed"><p class="font-semibold text-[15px] leading-none truncate">JanSetu</p><p class="text-[9px] text-stone-400 tracking-[0.12em] mt-1">CONSTITUENCY INTELLIGENCE</p></div>
+</div>
+<button x-show="!sidebarCollapsed" class="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400" @click="sidebarCollapsed=true"><i data-lucide="chevrons-left" class="w-4 h-4"></i></button>
+</div>
+<button x-show="sidebarCollapsed" class="absolute -right-3 top-[72px] w-6 h-6 bg-white border border-stone-200 rounded-full grid place-items-center text-stone-400 hover:text-brand-700 shadow-sm" @click="sidebarCollapsed=false"><i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i></button>
+<nav id="navDesktop" class="flex-1 overflow-y-auto py-3 thin-scroll"></nav>
+<div class="p-3 border-t border-stone-100 shrink-0" x-show="!sidebarCollapsed">
+<div class="rounded-xl bg-stone-50 border border-stone-100 p-3">
+<div class="flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-brand-500 pulse-dot"></span><p class="text-[11px] font-medium text-stone-600">Field app synced</p></div>
+<p class="text-[10px] text-stone-400 mt-1 font-mono">Last sync · 2 min ago · 22/22 booths</p>
+</div>
+</div>
+</aside>
+
+<!-- ══════════ MAIN WRAPPER ══════════ -->
+<div class="min-h-screen transition-[padding] duration-300" :class="sidebarCollapsed?'lg:pl-[76px]':'lg:pl-64'">
+
+<!-- ── TOP NAVBAR ── -->
+<header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-stone-200/70">
+<div class="px-4 sm:px-6 h-16 flex items-center gap-3">
+<button class="lg:hidden p-2 -ml-2 rounded-lg hover:bg-stone-100" @click="mobileOpen=true"><i data-lucide="menu" class="w-5 h-5 text-stone-600"></i></button>
+
+<!-- Desktop search -->
+<div class="hidden sm:block relative w-64 xl:w-80">
+<i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+<input id="gSearch" @input="doSearch($event.target.value)" @focus="doSearch($event.target.value)" type="text" placeholder="Search booths, issues, workers…"
+class="w-full h-9 pl-9 pr-12 rounded-xl bg-stone-100/80 border border-transparent focus:bg-white focus:border-stone-300 focus:ring-4 focus:ring-stone-100 outline-none text-[13px] placeholder:text-stone-400 transition"/>
+<span class="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] text-stone-400 border border-stone-200 rounded px-1.5 py-0.5 bg-white">/</span>
+<div id="searchDropDesk" class="hidden absolute mt-2 w-[380px] max-w-[90vw] left-0 card p-2 z-50 max-h-[420px] overflow-y-auto thin-scroll"></div>
+</div>
+<button class="sm:hidden p-2 rounded-lg hover:bg-stone-100" @click="mobSearchOpen=!mobSearchOpen"><i data-lucide="search" class="w-5 h-5 text-stone-600"></i></button>
+
+<div class="flex-1"></div>
+
+<!-- Constituency selector -->
+<div class="relative" @click.outside="constOpen=false">
+<button @click="constOpen=!constOpen" class="flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-xl border border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm transition">
+<i data-lucide="map-pin" class="w-3.5 h-3.5 text-brand-700"></i>
+<span id="constLabel" class="text-[13px] font-medium max-w-[110px] xl:max-w-none truncate">Rajapur Central</span>
+<i data-lucide="chevron-down" class="w-3.5 h-3.5 text-stone-400"></i>
+</button>
+<div x-show="constOpen" x-cloak x-transition class="absolute right-0 mt-2 w-72 card p-1.5 z-50">
+<p class="px-2.5 pt-1.5 pb-1 text-[10px] font-mono tracking-widest text-stone-400">SWITCH CONSTITUENCY</p>
+<template x-for="(c,i) in constituencies" :key="i">
+<button @click="pickConst(i)" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg hover:bg-stone-50 text-left">
+<span>
+<span class="block text-[13px] font-medium" :class="constSel===i&&'text-brand-700'" x-text="c.name"></span>
+<span class="block text-[11px] text-stone-400" x-text="c.district+' district · demo dataset'"></span>
+</span>
+<i data-lucide="check" class="w-4 h-4 text-brand-700" x-show="constSel===i"></i>
+</button>
+</template>
+</div>
+</div>
+
+<!-- Date / clock -->
+<div class="hidden md:block text-right leading-tight px-1">
+<p id="navClock" class="font-mono text-[13px] font-medium text-stone-700">—</p>
+<p id="navDate" class="text-[10.5px] text-stone-400">—</p>
+</div>
+
+<!-- Notifications -->
+<div class="relative" @click.outside="notifOpen=false">
+<button @click="notifOpen=!notifOpen" class="relative p-2 rounded-xl hover:bg-stone-100 transition">
+<i data-lucide="bell" class="w-5 h-5 text-stone-600"></i>
+<span x-show="notifCount>0" x-cloak class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-mono grid place-items-center" x-text="notifCount"></span>
+</button>
+<div x-show="notifOpen" x-cloak x-transition class="absolute right-0 mt-2 w-[340px] card p-1.5 z-50">
+<div class="flex items-center justify-between px-2.5 py-1.5">
+<p class="text-[13px] font-semibold">Notifications</p>
+<button @click="markAllRead()" class="text-[11px] text-brand-700 hover:underline font-medium">Mark all as read</button>
+</div>
+<div class="max-h-[320px] overflow-y-auto thin-scroll">
+<template x-for="(n,i) in notifs" :key="i">
+<div class="flex gap-2.5 px-2.5 py-2.5 rounded-lg hover:bg-stone-50">
+<span class="w-8 h-8 rounded-lg grid place-items-center shrink-0" :class="n.c"><i :data-lucide="n.icon" class="w-4 h-4"></i></span>
+<div class="min-w-0">
+<p class="text-[12.5px] font-medium leading-snug" x-text="n.t"></p>
+<p class="text-[11.5px] text-stone-500 leading-snug mt-0.5" x-text="n.d"></p>
+<p class="text-[10px] text-stone-400 font-mono mt-1" x-text="n.time"></p>
+</div>
+<span x-show="n.u" class="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 ml-auto shrink-0"></span>
+</div>
+</template>
+</div>
+</div>
+</div>
+
+<div class="w-px h-6 bg-stone-200 hidden sm:block"></div>
+
+<!-- Profile -->
+<div class="relative" @click.outside="profileOpen=false">
+<button @click="profileOpen=!profileOpen" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl hover:bg-stone-100 transition">
+<span class="w-8 h-8 rounded-full bg-brand-700 text-white grid place-items-center text-[11px] font-semibold">RS</span>
+<span class="hidden xl:block text-left leading-tight"><span class="block text-[12.5px] font-semibold">Raghav Sharma</span><span class="block text-[10px] text-stone-400">Hon'ble MLA</span></span>
+<i data-lucide="chevron-down" class="w-3.5 h-3.5 text-stone-400 hidden xl:block"></i>
+</button>
+<div x-show="profileOpen" x-cloak x-transition class="absolute right-0 mt-2 w-56 card p-1.5 z-50">
+<div class="px-2.5 py-2 border-b border-stone-100 mb-1">
+<p class="text-[13px] font-semibold">Raghav Sharma</p>
+<p class="text-[11px] text-stone-400">raghav.sharma@constituency.in</p>
+</div>
+<button @click="go('settings');profileOpen=false" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-[13px]"><i data-lucide="user" class="w-4 h-4 text-stone-400"></i>Profile & preferences</button>
+<button @click="showToast('Reports digest scheduled for Monday 8 AM');profileOpen=false" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-[13px]"><i data-lucide="file-text" class="w-4 h-4 text-stone-400"></i>Weekly digest</button>
+<button @click="showToast('This is a prototype session — sign-out disabled','shield-check');profileOpen=false" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-[13px] text-red-600"><i data-lucide="log-out" class="w-4 h-4"></i>Sign out</button>
+</div>
+</div>
+</div>
+
+<!-- Mobile search panel -->
+<div x-show="mobSearchOpen" x-cloak class="sm:hidden px-4 pb-3 relative">
+<div class="relative">
+<i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+<input @input="doSearch($event.target.value)" type="text" placeholder="Search booths, issues, workers…" class="w-full h-9 pl-9 rounded-xl bg-stone-100 outline-none text-[13px]"/>
+</div>
+<div id="searchDropMob" class="hidden absolute mt-2 left-4 right-4 card p-2 z-50 max-h-[360px] overflow-y-auto thin-scroll"></div>
+</div>
+</header>
+
+<!-- ── PAGE BODY ── -->
+<div class="px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-[1440px] mx-auto">
+
+<!-- ════════ VIEW: DASHBOARD ════════ -->
+<section id="view-dashboard" class="view hidden space-y-6">
+
+<!-- Gradient hero band -->
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c3b2a] via-[#12513a] to-[#1b7a54] text-white shadow-pop">
+<svg class="absolute -right-10 -top-16 w-[420px] h-[420px] opacity-[0.07]" viewBox="0 0 200 200" fill="none"><circle cx="100" cy="100" r="98" stroke="white" stroke-width="1"/><circle cx="100" cy="100" r="72" stroke="white" stroke-width="1"/><circle cx="100" cy="100" r="46" stroke="white" stroke-width="1"/><circle cx="100" cy="100" r="20" stroke="white" stroke-width="1"/></svg>
+<div class="relative p-6 sm:p-8">
+<div class="flex flex-col lg:flex-row lg:items-start gap-5 justify-between">
+<div>
+<div class="flex items-center gap-2 text-[10px] font-mono tracking-[0.18em] text-white/60">
+<span class="w-1.5 h-1.5 rounded-full bg-brand-300 pulse-dot"></span>CONSTITUENCY COMMAND CENTRE · <span id="heroConstTop">RAJAPUR CENTRAL</span>
+</div>
+<h1 class="mt-2.5 text-2xl sm:text-3xl font-semibold tracking-tight"><span id="heroGreet">Good morning,</span> <span class="font-serif italic font-normal">Raghav-ji.</span></h1>
+<p class="mt-1.5 text-[13px] text-white/70">Here is the aggregated position across your constituency as of <span id="heroDate" class="font-medium text-white/90">today</span>.</p>
+</div>
+<div class="flex items-center gap-2.5 shrink-0">
+<button onclick="exportReport('monthly','pdf')" class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur hover:bg-white/20 transition text-[13px] font-medium"><i data-lucide="printer" class="w-4 h-4"></i>Weekly briefing</button>
+<button onclick="showToast('Note added to your constituency journal','check-circle')" class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-brand-800 hover:bg-brand-50 transition text-[13px] font-semibold shadow-sm"><i data-lucide="plus" class="w-4 h-4"></i>New note</button>
+</div>
+</div>
+<div class="mt-6 flex flex-wrap gap-2">
+<span class="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1.5 font-mono text-[11px] text-white/85"><i data-lucide="users" class="w-3 h-3"></i>Population <b id="cPop" class="text-white font-semibold">—</b></span>
+<span class="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1.5 font-mono text-[11px] text-white/85"><i data-lucide="vote" class="w-3 h-3"></i>Electors <b id="cElect" class="text-white font-semibold">—</b></span>
+<span class="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1.5 font-mono text-[11px] text-white/85"><i data-lucide="map-pin" class="w-3 h-3"></i><b id="cBooths" class="text-white font-semibold">—</b> booths · 10 wards</span>
+<span class="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1.5 font-mono text-[11px] text-white/85"><i data-lucide="alert-circle" class="w-3 h-3"></i><b id="cIssues" class="text-white font-semibold">—</b> open issues</span>
+<span class="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1.5 font-mono text-[11px] text-white/85"><i data-lucide="gauge" class="w-3 h-3"></i>Health <b id="cHealth" class="text-white font-semibold">—</b>/100</span>
+</div>
+</div>
+</div>
+
+<!-- KPI band: two feature tiles + stat strip -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<!-- Health tile -->
+<div class="card card-hover p-5 xl:col-span-3">
+<div class="flex items-center justify-between">
+<p class="text-[11px] font-semibold tracking-wide text-stone-500 uppercase">Constituency Health</p>
+<span class="w-7 h-7 rounded-lg bg-brand-50 grid place-items-center"><i data-lucide="gauge" class="w-4 h-4 text-brand-700"></i></span>
+</div>
+<div class="relative w-[136px] h-[136px] mx-auto mt-3">
+<svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+<circle cx="60" cy="60" r="52" stroke="#f0efed" stroke-width="10" fill="none"/>
+<circle id="gaugeArc" cx="60" cy="60" r="52" stroke="#1f6448" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+</svg>
+<div class="absolute inset-0 grid place-items-center">
+<div class="text-center"><p id="kHealth" class="text-[32px] leading-none font-semibold tracking-tight tnum">0</p><p class="text-[10px] text-stone-400 font-mono mt-1">/ 100 INDEX</p></div>
+</div>
+</div>
+<div class="mt-3 flex justify-center"><span id="kHealthDelta" class="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-1 bg-brand-50 text-brand-800"><i data-lucide="trending-up" class="w-3 h-3"></i>+2.1 vs last month</span></div>
+<div class="mt-4 space-y-2.5" id="healthBreak"></div>
+</div>
+
+<!-- Readiness tile -->
+<div class="card card-hover p-5 xl:col-span-3">
+<div class="flex items-center justify-between">
+<p class="text-[11px] font-semibold tracking-wide text-stone-500 uppercase">Winning Readiness Index</p>
+<span class="w-7 h-7 rounded-lg bg-brand-50 grid place-items-center"><i data-lucide="vote" class="w-4 h-4 text-brand-700"></i></span>
+</div>
+<div class="mt-4 flex items-end gap-2">
+<p id="kReadiness" class="text-[44px] leading-none font-semibold tracking-tight tnum text-brand-800">0</p>
+<p class="text-[11px] text-stone-400 font-mono pb-1.5">/ 100</p>
+</div>
+<div class="mt-3.5 h-3 rounded-full bg-stone-100 relative overflow-hidden">
+<div id="readyFill" class="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all duration-1000" style="width:0%"></div>
+<div class="absolute inset-0 tick-overlay pointer-events-none"></div>
+</div>
+<p class="mt-2.5 text-[10.5px] text-stone-400 leading-relaxed">Planning indicator — aggregates coverage, resolution & field presence. <span class="text-stone-500 font-medium">Not an outcome forecast.</span></p>
+<div class="mt-4 space-y-2.5" id="readyFactors"></div>
+</div>
+
+<!-- Stat strip -->
+<div class="xl:col-span-6 card p-1.5 grid grid-cols-2 sm:grid-cols-4">
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">Total Booths</p>
+<p id="sBooths" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight">0</p>
+<p class="mt-1.5 text-[10.5px] text-stone-400">across 10 wards</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Strong</p>
+<p id="sStrong" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight text-emerald-700">0</p>
+<p id="sStrongSub" class="mt-1.5 text-[10.5px] text-stone-400">—</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Competitive</p>
+<p id="sComp" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight text-amber-600">0</p>
+<p id="sCompSub" class="mt-1.5 text-[10.5px] text-stone-400">—</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Needs Attention</p>
+<p id="sWeak" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight text-red-600">0</p>
+<p id="sWeakSub" class="mt-1.5 text-[10.5px] text-stone-400">—</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">Citizen Issues Open</p>
+<p id="sOpen" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight">0</p>
+<p id="sOpenSub" class="mt-1.5 text-[10.5px] text-stone-400 flex items-center gap-1"><i data-lucide="trending-down" class="w-3 h-3 text-emerald-600"></i>—</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">Resolved This Month</p>
+<p id="sResolved" class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight">0</p>
+<p id="sResSub" class="mt-1.5 text-[10.5px] text-stone-400 flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3 text-emerald-600"></i>—</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">Worker Coverage</p>
+<p class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight"><span id="sCov">0</span><span class="text-base text-stone-400 font-medium">%</span></p>
+<p class="mt-1.5 text-[10.5px] text-stone-400">target 70%</p>
+</div>
+<div class="p-4 rounded-xl hover:bg-stone-50 transition">
+<p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">Citizen Satisfaction</p>
+<p class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight"><span id="sSat">0</span><span class="text-base text-stone-400 font-medium">/5</span></p>
+<p class="mt-1.5 text-[10.5px] text-stone-400">survey sample 1,240</p>
+</div>
+</div>
+</div>
+
+<!-- Row: trends + advisor rail -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+<div class="card p-5 xl:col-span-8">
+<div class="flex flex-wrap items-start justify-between gap-3 mb-1">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">PUBLIC GRIEVANCE REGISTER</p>
+<h2 class="text-[15px] font-semibold mt-1">Public Issue Trends</h2>
+</div>
+<div class="flex gap-1.5 text-[11px]">
+<span class="px-2.5 py-1 rounded-full bg-stone-100 text-stone-500 font-medium">12 months</span>
+<span class="px-2.5 py-1 rounded-full bg-brand-50 text-brand-800 font-medium ring-1 ring-brand-100">All wards</span>
+</div>
+</div>
+<div id="ch-trends"></div>
+</div>
+
+<!-- AI Insights rail -->
+<div class="xl:col-span-4 xl:sticky xl:top-24">
+<div class="rounded-2xl bg-cream border border-[#ece5d4] shadow-card p-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-7 h-7 rounded-lg bg-white border border-[#ece5d4] grid place-items-center"><i data-lucide="sparkles" class="w-4 h-4 text-brand-700"></i></span>
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">OPERATIONAL ADVISOR</p>
+<p class="font-serif italic text-[17px] leading-none text-stone-800 mt-0.5">Recommendations</p>
+</div>
+</div>
+<span class="font-mono text-[10px] text-stone-400">6 insights</span>
+</div>
+<div id="insightList" class="mt-3.5 space-y-2.5 max-h-[560px] overflow-y-auto thin-scroll pr-1"></div>
+<div class="mt-3 flex items-start gap-2 rounded-xl bg-white/70 border border-[#ece5d4] px-3 py-2.5">
+<i data-lucide="shield-check" class="w-3.5 h-3.5 text-brand-700 mt-0.5 shrink-0"></i>
+<p class="text-[10.5px] leading-relaxed text-stone-500">Operational guidance for planning and resource allocation only. JanSetu does not predict election outcomes.</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Row: stacked + donut + ward comparison -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-4">
+<div class="card p-5 xl:col-span-5">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">BOOTH NETWORK</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Booth Status by Ward</h2>
+<div id="ch-stacked"></div>
+</div>
+<div class="card p-5 xl:col-span-3">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">COMPOSITION</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Issue Categories</h2>
+<div id="ch-donut"></div>
+</div>
+<div class="card p-5 md:col-span-2 xl:col-span-4">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">BENCHMARKING</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Ward Comparison <span class="text-[11px] text-stone-400 font-normal">· health index</span></h2>
+<div id="ch-wardbar"></div>
+</div>
+</div>
+
+<!-- Row: area + heatmap -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<div class="card p-5 xl:col-span-7">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">FIELD NETWORK</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Volunteer Activity <span class="text-[11px] text-stone-400 font-normal">· weekly active volunteers</span></h2>
+<div id="ch-area"></div>
+</div>
+<div class="card p-5 xl:col-span-5">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">OUTREACH INTENSITY</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Monthly Outreach <span class="text-[11px] text-stone-400 font-normal">· citizen contacts per ward</span></h2>
+<div id="ch-heat"></div>
+</div>
+</div>
+
+<!-- Row: timeline + this week -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<div class="card p-5 xl:col-span-8">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">FIELD PROGRAMME</p>
+<h2 class="text-[15px] font-semibold mt-1 mb-2">Campaign Activities <span class="text-[11px] text-stone-400 font-normal">· next 4 weeks</span></h2>
+<div id="ch-timeline"></div>
+</div>
+<div class="card p-5 xl:col-span-4">
+<div class="flex items-center justify-between">
+<div><p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">AGENDA</p><h2 class="text-[15px] font-semibold mt-1">This Week</h2></div>
+<button onclick="go('campaign')" class="text-[11.5px] font-medium text-brand-700 hover:underline flex items-center gap-1">Full calendar<i data-lucide="arrow-up-right" class="w-3 h-3"></i></button>
+</div>
+<div id="weekList" class="mt-3 space-y-1"></div>
+</div>
+</div>
+
+<!-- Booth network map -->
+<div class="card p-5">
+<div class="flex flex-wrap items-start justify-between gap-3">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">GEOGRAPHIC OVERVIEW · SCHEMATIC</p>
+<h2 class="text-[15px] font-semibold mt-1">Booth Network Map</h2>
+<p class="text-[12px] text-stone-500 mt-1">Hover a card for the snapshot · click for the full drilldown</p>
+</div>
+<div class="flex flex-col items-end gap-2.5">
+<div class="flex items-center gap-4 text-[11px] text-stone-500">
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-400"></span>Good</span>
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-amber-400"></span>Watch</span>
+<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-red-400"></span>Needs attention</span>
+</div>
+<div id="mapChips" class="flex gap-1.5"></div>
+</div>
+</div>
+<div id="mapGrid" class="mt-5 space-y-5"></div>
+</div>
+
+<!-- Booth performance table -->
+<div class="card overflow-hidden">
+<div class="p-5 pb-3 flex flex-wrap items-start justify-between gap-3">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">GROUND REGISTER</p>
+<h2 class="text-[15px] font-semibold mt-1">Booth Performance <span class="tblCount text-[11px] text-stone-400 font-normal font-mono"></span></h2>
+</div>
+<div class="flex flex-wrap items-center gap-2">
+<div class="relative">
+<i data-lucide="search" class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i>
+<input oninput="tblSearchInput(this.value)" placeholder="Search booth…" class="h-8.5 h-9 w-44 pl-8 pr-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[12px] transition"/>
+</div>
+<select onchange="tblWardSel(this.value)" class="h-9 rounded-lg bg-stone-100 text-[12px] px-2 outline-none focus:ring-2 focus:ring-stone-200"><option value="">All wards</option></select>
+</div>
+</div>
+<div id="tblChips" class="px-5 pb-3 flex flex-wrap gap-1.5"></div>
+<div class="overflow-x-auto thin-scroll">
+<table class="w-full min-w-[980px] text-left">
+<thead>
+<tr class="bg-stone-50/80 border-y border-stone-100 text-[10.5px] uppercase tracking-wide text-stone-400 font-semibold">
+<th class="px-5 py-2.5">Booth</th>
+<th class="px-3 py-2.5">Ward</th>
+<th class="px-3 py-2.5"><button onclick="sortTable('voters')" class="flex items-center gap-1 hover:text-stone-700">Registered voters <span class="sortArr" data-k="voters"></span></button></th>
+<th class="px-3 py-2.5"><button onclick="sortTable('part')" class="flex items-center gap-1 hover:text-stone-700">Participation <span class="sortArr" data-k="part"></span></button></th>
+<th class="px-3 py-2.5"><button onclick="sortTable('issues')" class="flex items-center gap-1 hover:text-stone-700">Issues <span class="sortArr" data-k="issues"></span></button></th>
+<th class="px-3 py-2.5"><button onclick="sortTable('cov')" class="flex items-center gap-1 hover:text-stone-700">Volunteer coverage <span class="sortArr" data-k="cov"></span></button></th>
+<th class="px-3 py-2.5">Satisfaction</th>
+<th class="px-3 py-2.5"><button onclick="sortTable('health')" class="flex items-center gap-1 hover:text-stone-700">Overall health <span class="sortArr" data-k="health"></span></button></th>
+<th class="px-3 py-2.5">Priority</th>
+<th class="px-5 py-2.5 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="boothTblBody text-[13px]"></tbody>
+</table>
+</div>
+</div>
+
+<p class="text-center text-[10.5px] font-mono text-stone-400 pt-2">JanSetu prototype · all data generated locally in your browser · no external services</p>
+</section>
+
+<!-- ════════ VIEW: CONSTITUENCY ════════ -->
+<section id="view-constituency" class="view hidden space-y-6">
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c3b2a] via-[#12513a] to-[#1b7a54] text-white shadow-pop p-6 sm:p-8">
+<p class="text-[10px] font-mono tracking-[0.18em] text-white/60">VIDHAN SABHA CONSTITUENCY PROFILE</p>
+<h1 id="cvName" class="mt-2 text-3xl font-semibold tracking-tight">Rajapur <span class="font-serif italic font-normal">Central</span></h1>
+<p id="cvDesc" class="mt-2 max-w-2xl text-[13px] text-white/70 leading-relaxed"></p>
+<div id="cvFacts" class="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+</div>
+<div class="card overflow-hidden">
+<div class="p-5 pb-3"><p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">ADMINISTRATIVE UNITS</p><h2 class="text-[15px] font-semibold mt-1">Ward Directory</h2></div>
+<div class="overflow-x-auto thin-scroll"><table class="w-full min-w-[860px] text-left text-[13px]">
+<thead><tr class="bg-stone-50/80 border-y border-stone-100 text-[10.5px] uppercase tracking-wide text-stone-400 font-semibold">
+<th class="px-5 py-2.5">Ward</th><th class="px-3 py-2.5">Booths</th><th class="px-3 py-2.5">Population</th><th class="px-3 py-2.5">Electors</th><th class="px-3 py-2.5">Open issues</th><th class="px-3 py-2.5">Coverage</th><th class="px-5 py-2.5">Health</th>
+</tr></thead>
+<tbody id="cvWardRows" class="divide-y divide-stone-100"></tbody>
+</table></div>
+</div>
+</section>
+
+<!-- ════════ VIEW: BOOTH ANALYTICS ════════ -->
+<section id="view-booths" class="view hidden space-y-6">
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<div class="card p-5 xl:col-span-7">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">DISTRIBUTION</p><h2 class="text-[15px] font-semibold mt-1 mb-2">Booth Status by Ward</h2><div id="ch-boothstack"></div>
+</div>
+<div class="card p-5 xl:col-span-5">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">NETWORK MIX</p><h2 class="text-[15px] font-semibold mt-1 mb-2">Booths by Status</h2><div id="ch-boothdonut"></div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+<div class="card p-5"><div class="flex items-center gap-2 mb-3"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i><h3 class="text-[14px] font-semibold">Strongest booths</h3></div><div id="topBooths" class="space-y-1"></div></div>
+<div class="card p-5"><div class="flex items-center gap-2 mb-3"><i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i><h3 class="text-[14px] font-semibold">Needs attention first</h3></div><div id="weakBooths" class="space-y-1"></div></div>
+</div>
+<div class="card overflow-hidden">
+<div class="p-5 pb-3"><p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">FULL REGISTER</p><h2 class="text-[15px] font-semibold mt-1">All Booths <span class="tblCount text-[11px] text-stone-400 font-normal font-mono"></span></h2></div>
+<div class="overflow-x-auto thin-scroll"><table class="w-full min-w-[980px] text-left">
+<thead><tr class="bg-stone-50/80 border-y border-stone-100 text-[10.5px] uppercase tracking-wide text-stone-400 font-semibold">
+<th class="px-5 py-2.5">Booth</th><th class="px-3 py-2.5">Ward</th><th class="px-3 py-2.5">Registered voters</th><th class="px-3 py-2.5">Participation</th><th class="px-3 py-2.5">Issues</th><th class="px-3 py-2.5">Volunteer coverage</th><th class="px-3 py-2.5">Satisfaction</th><th class="px-3 py-2.5">Overall health</th><th class="px-3 py-2.5">Priority</th><th class="px-5 py-2.5 text-right">Action</th>
+</tr></thead>
+<tbody class="boothTblBody text-[13px]"></tbody>
+</table></div>
+</div>
+</section>
+
+<!-- ════════ VIEW: WARD ANALYTICS ════════ -->
+<section id="view-wards" class="view hidden space-y-6">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="wardStats"></div>
+<div class="card p-5">
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">BENCHMARKING</p><h2 class="text-[15px] font-semibold mt-1 mb-2">Health Index by Ward</h2><div id="ch-wardbig"></div>
+</div>
+<div class="card overflow-hidden">
+<div class="p-5 pb-3"><p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">WARD REGISTER</p><h2 class="text-[15px] font-semibold mt-1">Ward Performance</h2></div>
+<div class="overflow-x-auto thin-scroll"><table class="w-full min-w-[860px] text-left text-[13px]">
+<thead><tr class="bg-stone-50/80 border-y border-stone-100 text-[10.5px] uppercase tracking-wide text-stone-400 font-semibold">
+<th class="px-5 py-2.5">Ward</th><th class="px-3 py-2.5">Booths</th><th class="px-3 py-2.5">Population</th><th class="px-3 py-2.5">Electors</th><th class="px-3 py-2.5">Open issues</th><th class="px-3 py-2.5">Coverage</th><th class="px-3 py-2.5">Status mix</th><th class="px-5 py-2.5">Health</th>
+</tr></thead>
+<tbody id="wardRows" class="divide-y divide-stone-100"></tbody>
+</table></div>
+</div>
+</section>
+
+<!-- ════════ VIEW: ISSUES (KANBAN) ════════ -->
+<section id="view-issues" class="view hidden space-y-5">
+<div class="flex flex-wrap items-end justify-between gap-3">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">GRIEVANCE WORKFLOW</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Public Issues Board</h1>
+<p class="text-[12.5px] text-stone-500 mt-1">Drag cards between columns to update status · <span id="kanbanTotal" class="font-mono"></span> open items in register</p>
+</div>
+<div class="flex items-center gap-2">
+<label class="text-[11px] text-stone-400 font-medium">Priority</label>
+<select id="kFilter" onchange="kanbanFilter(this.value)" class="h-9 rounded-lg bg-white border border-stone-200 text-[12px] px-2.5 outline-none focus:ring-2 focus:ring-stone-200">
+<option value="">All</option><option>High</option><option>Medium</option><option>Low</option>
+</select>
+</div>
+</div>
+<div id="kanban" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
+</section>
+
+<!-- ════════ VIEW: WORKERS ════════ -->
+<section id="view-workers" class="view hidden space-y-6">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">FIELD NETWORK</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Worker Dashboard</h1>
+</div>
+<div class="card p-1.5 grid grid-cols-2 lg:grid-cols-5" id="workerStrip"></div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<div class="card p-5 xl:col-span-5">
+<div class="flex items-center justify-between mb-3"><h3 class="text-[14px] font-semibold">Leaderboard · top performers</h3><span class="font-mono text-[10px] text-stone-400">TASKS / 30 DAYS</span></div>
+<div id="leaderboard" class="space-y-1"></div>
+</div>
+<div class="card p-5 xl:col-span-4">
+<h3 class="text-[14px] font-semibold mb-3">Recent activity</h3>
+<div id="activityFeed" class="space-y-0"></div>
+</div>
+<div class="card p-5 xl:col-span-3">
+<h3 class="text-[14px] font-semibold mb-3">Teams by ward</h3>
+<div id="teamWards" class="space-y-2.5"></div>
+</div>
+</div>
+<div class="card overflow-hidden">
+<div class="p-5 pb-3 flex flex-wrap items-center justify-between gap-3">
+<div><p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">DIRECTORY</p><h2 class="text-[15px] font-semibold mt-1">All Workers <span id="wkCount" class="text-[11px] text-stone-400 font-normal font-mono"></span></h2></div>
+<div class="relative"><i data-lucide="search" class="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2"></i><input oninput="wkSearch(this.value)" placeholder="Search worker / ward…" class="h-9 w-52 pl-8 pr-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[12px] transition"/></div>
+</div>
+<div class="overflow-x-auto thin-scroll"><table class="w-full min-w-[820px] text-left text-[13px]">
+<thead><tr class="bg-stone-50/80 border-y border-stone-100 text-[10.5px] uppercase tracking-wide text-stone-400 font-semibold">
+<th class="px-5 py-2.5">Worker</th><th class="px-3 py-2.5">Ward</th><th class="px-3 py-2.5">Role</th><th class="px-3 py-2.5">Tasks done</th><th class="px-3 py-2.5">Pending</th><th class="px-3 py-2.5">Calls</th><th class="px-3 py-2.5">Last active</th><th class="px-5 py-2.5">Status</th>
+</tr></thead>
+<tbody id="workerRows" class="divide-y divide-stone-100"></tbody>
+</table></div>
+</div>
+</section>
+
+<!-- ════════ VIEW: CAMPAIGN ════════ -->
+<section id="view-campaign" class="view hidden space-y-6">
+<div class="flex flex-wrap items-end justify-between gap-3">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">ENGAGEMENT PLANNER</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Campaign Calendar</h1>
+<p class="text-[12.5px] text-stone-500 mt-1">Meetings · public events · government programmes · volunteer drives · awareness campaigns</p>
+</div>
+<button onclick="toggleEventForm()" class="flex items-center gap-2 h-9.5 h-10 px-4 rounded-xl bg-brand-700 text-white text-[13px] font-medium hover:bg-brand-800 transition shadow-sm"><i data-lucide="plus" class="w-4 h-4"></i>New engagement</button>
+</div>
+<div id="eventForm" class="hidden card p-5">
+<h3 class="text-[14px] font-semibold mb-4">Add engagement</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+<input id="evTitle" placeholder="Title" class="h-10 px-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[13px] lg:col-span-2"/>
+<input id="evDate" type="date" class="h-10 px-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[13px]"/>
+<select id="evType" class="h-10 px-2.5 rounded-lg bg-stone-100 outline-none text-[13px]"><option value="meeting">Meeting</option><option value="event">Public event</option><option value="program">Govt. programme</option><option value="drive">Volunteer drive</option><option value="awareness">Awareness campaign</option></select>
+<button onclick="addEvent()" class="h-10 rounded-lg bg-brand-700 text-white text-[13px] font-medium hover:bg-brand-800 transition">Save engagement</button>
+</div>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+<div class="card p-5 xl:col-span-8">
+<div class="flex items-center justify-between mb-4">
+<h3 id="calLabel" class="text-[15px] font-semibold">—</h3>
+<div class="flex gap-1">
+<button onclick="calMove(-1)" class="p-1.5 rounded-lg hover:bg-stone-100"><i data-lucide="chevron-left" class="w-4 h-4 text-stone-500"></i></button>
+<button onclick="calMove(1)" class="p-1.5 rounded-lg hover:bg-stone-100"><i data-lucide="chevron-right" class="w-4 h-4 text-stone-500"></i></button>
+</div>
+</div>
+<div id="calLegend" class="flex flex-wrap gap-3 mb-3 text-[10.5px] text-stone-500"></div>
+<div class="grid grid-cols-7 gap-1 text-center text-[10px] font-mono text-stone-400 mb-1"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span></div>
+<div id="calGrid" class="grid grid-cols-7 gap-1"></div>
+</div>
+<div class="xl:col-span-4 space-y-4">
+<div class="card p-5"><h3 class="text-[14px] font-semibold mb-1">Upcoming engagements</h3><p class="text-[11px] text-stone-400 mb-3">Next in the field programme</p><div id="upcomingList" class="space-y-1"></div></div>
+<div class="card p-5"><h3 class="text-[14px] font-semibold mb-2">Selected day</h3><div id="dayList" class="text-[12.5px] text-stone-400">Click a date on the calendar to see its engagements.</div></div>
+</div>
+</div>
+</section>
+
+<!-- ════════ VIEW: SCHEMES ════════ -->
+<section id="view-schemes" class="view hidden space-y-6">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">WELFARE DELIVERY</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Government Scheme Coverage</h1>
+</div>
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+<div class="card overflow-hidden xl:col-span-8">
+<div class="p-5 pb-2"><h2 class="text-[15px] font-semibold">Scheme register</h2></div>
+<div id="schemeRows" class="divide-y divide-stone-100"></div>
+</div>
+<div class="xl:col-span-4 space-y-4">
+<div class="card p-5"><h3 class="text-[14px] font-semibold mb-2">Beneficiaries by scheme</h3><div id="ch-schemes"></div></div>
+<div class="rounded-2xl bg-cream border border-[#ece5d4] p-4">
+<div class="flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-brand-700"></i><p class="text-[13px] font-semibold text-stone-700">Verification gap</p></div>
+<p class="text-[12px] text-stone-500 mt-1.5 leading-relaxed">3 wards fall below 55% on PM Awas documentation. A joint verification camp with the revenue office could close ~80% of pending cases in one day.</p>
+<button onclick="go('wards')" class="mt-2.5 text-[12px] font-medium text-brand-700 hover:underline">View ward coverage →</button>
+</div>
+</div>
+</div>
+</section>
+
+<!-- ════════ VIEW: PUBLIC FEEDBACK ════════ -->
+<section id="view-feedback" class="view hidden space-y-6">
+<div class="flex flex-wrap items-end justify-between gap-3">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">CITIZEN VOICE</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Public Feedback</h1>
+</div>
+<div id="fbChips" class="flex gap-1.5"></div>
+</div>
+<div class="card p-1.5 grid grid-cols-2 lg:grid-cols-4" id="fbStats"></div>
+<div id="fbList" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+</section>
+
+<!-- ════════ VIEW: REPORTS ════════ -->
+<section id="view-reports" class="view hidden space-y-6">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">DOCUMENTS & EXPORTS</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Reports</h1>
+<p class="text-[12.5px] text-stone-500 mt-1">Exports are generated locally — Excel downloads a CSV; PDF opens a print-ready document.</p>
+</div>
+<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c3b2a] via-[#12513a] to-[#1b7a54] text-white p-6 sm:p-7 shadow-pop">
+<div class="flex flex-col lg:flex-row lg:items-center gap-5 justify-between">
+<div class="max-w-xl">
+<p class="text-[10px] font-mono tracking-[0.18em] text-white/60">FEATURED · MONTHLY</p>
+<h2 class="mt-1.5 text-xl font-semibold">Monthly Constituency Report</h2>
+<p class="mt-1.5 text-[13px] text-white/70 leading-relaxed">The complete picture: booth health, issue resolution, scheme delivery, volunteer network and citizen feedback — compiled for the monthly review.</p>
+<p class="mt-3 font-mono text-[10.5px] text-white/60">PERIOD <span id="repPeriod" class="text-white/85">—</span> · 14 SECTIONS · AUTO-COMPILED</p>
+</div>
+<div class="flex gap-2.5 shrink-0">
+<button onclick="exportReport('monthly','pdf')" class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur hover:bg-white/20 transition text-[13px] font-medium"><i data-lucide="printer" class="w-4 h-4"></i>Export PDF</button>
+<button onclick="exportReport('monthly','excel')" class="flex items-center gap-2 h-10 px-4 rounded-xl bg-white text-brand-800 hover:bg-brand-50 transition text-[13px] font-semibold"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i>Export Excel</button>
+</div>
+</div>
+</div>
+<div class="card divide-y divide-stone-100 overflow-hidden" id="reportList"></div>
+<div class="card p-5">
+<h3 class="text-[14px] font-semibold mb-3">Recent exports</h3>
+<div class="space-y-2.5 text-[12.5px]">
+<div class="flex items-center gap-3 text-stone-500"><i data-lucide="file-text" class="w-4 h-4 text-stone-300"></i>Infrastructure summary — June<span class="ml-auto font-mono text-[10.5px] text-stone-400">PDF · 2 days ago</span></div>
+<div class="flex items-center gap-3 text-stone-500"><i data-lucide="file-spreadsheet" class="w-4 h-4 text-stone-300"></i>Volunteer activities — Q2<span class="ml-auto font-mono text-[10.5px] text-stone-400">XLS · 5 days ago</span></div>
+<div class="flex items-center gap-3 text-stone-500"><i data-lucide="file-text" class="w-4 h-4 text-stone-300"></i>Citizen feedback digest — week 25<span class="ml-auto font-mono text-[10.5px] text-stone-400">PDF · 1 week ago</span></div>
+</div>
+</div>
+</section>
+
+<!-- ════════ VIEW: SETTINGS ════════ -->
+<section id="view-settings" class="view hidden space-y-6 max-w-3xl">
+<div>
+<p class="text-[10px] font-mono tracking-[0.15em] text-stone-400">WORKSPACE</p>
+<h1 class="text-xl font-semibold tracking-tight mt-1">Settings</h1>
+</div>
+<div class="card p-5">
+<h3 class="text-[14px] font-semibold mb-4">Profile</h3>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<div><label class="text-[11px] font-medium text-stone-500">Full name</label><input value="Raghav Sharma" class="mt-1 w-full h-10 px-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[13px]"/></div>
+<div><label class="text-[11px] font-medium text-stone-500">Email</label><input value="raghav.sharma@constituency.in" class="mt-1 w-full h-10 px-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[13px]"/></div>
+<div><label class="text-[11px] font-medium text-stone-500">Office phone</label><input value="+91 98300 00000" class="mt-1 w-full h-10 px-3 rounded-lg bg-stone-100 outline-none focus:bg-white focus:ring-2 focus:ring-stone-200 text-[13px]"/></div>
+</div>
+</div>
+<div class="card p-5">
+<h3 class="text-[14px] font-semibold mb-4">Interface preferences</h3>
+<div class="space-y-3.5">
+<label class="flex items-center justify-between cursor-pointer">
+<span><span class="block text-[13px] font-medium">Compact density</span><span class="block text-[11.5px] text-stone-400">Tighter spacing for data-heavy screens</span></span>
+<input type="checkbox" x-model="settings.compact" class="sr-only peer"><span class="relative w-10 h-6 rounded-full bg-stone-200 peer-checked:bg-brand-600 transition after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 after:shadow"></span>
+</label>
+<label class="flex items-center justify-between cursor-pointer">
+<span><span class="block text-[13px] font-medium">Reduce motion</span><span class="block text-[11.5px] text-stone-400">Disable transitions and count-up animations</span></span>
+<input type="checkbox" x-model="settings.reduceMotion" class="sr-only peer"><span class="relative w-10 h-6 rounded-full bg-stone-200 peer-checked:bg-brand-600 transition after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4 after:shadow"></span>
+</label>
+</div>
+</div>
+<div class="card p-5">
+<h3 class="text-[14px] font-semibold mb-4">Notifications</h3>
+<div class="space-y-3.5">
+<label class="flex items-center justify-between cursor-pointer"><span class="text-[13px] font-medium">High-priority issue alerts</span><input type="checkbox" x-model="settings.n1" class="sr-only peer"><span class="relative w-10 h-6 rounded-full bg-stone-200 peer-checked:bg-brand-600 transition after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4"></span></label>
+<label class="flex items-center justify-between cursor-pointer"><span class="text-[13px] font-medium">Daily field-report summary</span><input type="checkbox" x-model="settings.n2" class="sr-only peer"><span class="relative w-10 h-6 rounded-full bg-stone-200 peer-checked:bg-brand-600 transition after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4"></span></label>
+<label class="flex items-center justify-between cursor-pointer"><span class="text-[13px] font-medium">Feedback spike warnings</span><input type="checkbox" x-model="settings.n3" class="sr-only peer"><span class="relative w-10 h-6 rounded-full bg-stone-200 peer-checked:bg-brand-600 transition after:content-[''] after:absolute after:top-1 after:left-1 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-4"></span></label>
+</div>
+</div>
+<div class="card p-5">
+<h3 class="text-[14px] font-semibold mb-4">Data</h3>
+<div class="flex flex-wrap gap-2.5">
+<button onclick="exportReport('monthly','excel')" class="flex items-center gap-2 h-9.5 h-10 px-4 rounded-xl border border-stone-200 text-[13px] font-medium hover:border-stone-300 hover:bg-stone-50 transition"><i data-lucide="download" class="w-4 h-4 text-stone-500"></i>Export all data (CSV)</button>
+<button onclick="regenData()" class="flex items-center gap-2 h-10 px-4 rounded-xl border border-stone-200 text-[13px] font-medium hover:border-stone-300 hover:bg-stone-50 transition"><i data-lucide="refresh-cw" class="w-4 h-4 text-stone-500"></i>Regenerate demo dataset</button>
+</div>
+</div>
+<button onclick="showToast('Preferences saved to this browser session','check-circle')" class="h-10 px-5 rounded-xl bg-brand-700 text-white text-[13px] font-semibold hover:bg-brand-800 transition w-fit">Save changes</button>
+</section>
+
+</div><!-- /page body -->
+</div><!-- /main wrapper -->
+
+<!-- ══════════ BOOTH DRILLDOWN DRAWER ══════════ -->
+<div x-show="drawerOpen" x-cloak class="fixed inset-0 z-[60]">
+<div class="absolute inset-0 bg-stone-900/40 backdrop-blur-sm" @click="drawerOpen=false"></div>
+<aside class="absolute right-0 top-0 bottom-0 w-full sm:w-[520px] bg-white shadow-pop flex flex-col transition-transform duration-300" :class="drawerOpen?'translate-x-0':'translate-x-full'">
+<div id="drawerBody" class="flex-1 overflow-y-auto thin-scroll"></div>
+<div class="border-t border-stone-100 p-4 flex gap-2.5 bg-white">
+<button onclick="exportBoothPDF()" class="flex-1 h-10 rounded-xl bg-brand-700 text-white text-[13px] font-medium hover:bg-brand-800 transition flex items-center justify-center gap-2"><i data-lucide="printer" class="w-4 h-4"></i>Booth brief (PDF)</button>
+<button onclick="APP.closeDrawer();showToast('Booth flagged for weekly review','flag')" class="flex-1 h-10 rounded-xl border border-stone-200 text-[13px] font-medium hover:bg-stone-50 transition flex items-center justify-center gap-2"><i data-lucide="check" class="w-4 h-4 text-stone-500"></i>Mark for review</button>
+</div>
+</aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.2/dist/apexcharts.min.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+/* ═══════════════════ UTILITIES ═══════════════════ */
+let R=Math.random;
+const RNG=s=>{let t=s>>>0;return()=>(t+=0x6D2B79F5,t=Math.imul(t^t>>>15,t|1),t^=t+Math.imul(t^t>>>7,t|61),((t^t>>>14)>>>0)/4294967296)};
+const ri=(a,b)=>Math.floor(R()*(b-a+1))+a;
+const rf=(a,b)=>a+R()*(b-a);
+const pick=a=>a[Math.floor(R()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmtN=n=>n.toLocaleString('en-IN');
+const shuffleArr=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const daysAgo=n=>{const d=new Date(Date.now()-n*864e5);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})};
+const lastMonths=n=>{const a=[],d=new Date();for(let i=n-1;i>=0;i--){a.push(new Date(d.getFullYear(),d.getMonth()-i,1).toLocaleString('en-IN',{month:'short'}))}return a};
+function sparkSVG(vals,w=150,h=42,color='#37996f'){const mx=Math.max(...vals),mn=Math.min(...vals);const pts=vals.map((v,i)=>[(i/(vals.length-1))*w,h-5-((v-mn)/((mx-mn)||1))*(h-10)]);const d='M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" fill="none"><path d="${d}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="3" fill="${color}"/></svg>`}
+function countUp(id,target,dec=0,suffix=''){const el=document.getElementById(id);if(!el)return;if(document.documentElement.classList.contains('reduce-motion')){el.textContent=(dec?target.toFixed(dec):Math.round(target).toLocaleString('en-IN'))+suffix;return}
+const t0=performance.now(),dur=950;(function f(t){const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3),v=target*e;
+el.textContent=(dec?v.toFixed(dec):Math.round(v).toLocaleString('en-IN'))+suffix;if(p<1)requestAnimationFrame(f)})(t0)}
+
+/* icon auto-refresh for dynamically injected content */
+let iconQueued=false;
+new MutationObserver(()=>{if(iconQueued)return;iconQueued=true;setTimeout(()=>{iconQueued=false;try{lucide.createIcons()}catch(e){}} ,90)}).observe(document.body,{childList:true,subtree:true});
+
+/* ═══════════════════ STATIC REFERENCES ═══════════════════ */
+const CONSTITUENCIES=[
+{name:'Rajapur Central',district:'Rajapur',seed:1187,desc:'A mixed urban–semi-urban constituency on the river trade route — 10 wards spanning the old bazaar core, the station belt and the newer lake-side extensions.'},
+{name:'Devgarh North',district:'Devgarh',seed:2246,desc:'A predominantly agrarian constituency in the northern belt — canal-irrigated villages, a growing mandi town and nine hill-fringe settlements.'},
+{name:'Sitapur West',district:'Sitapur',seed:3361,desc:'An industrial-adjacent constituency — textile units, worker housing colonies and rapidly expanding residential extensions along the highway.'}];
+const WNAMES=['Gandhi Nagar','Azad Market','Riverside','Old Bazaar','Station Road','Green Park','Hill View','Industrial Estate','Lake View','New Extension'];
+const WSHORT=['Gandhi Ngr','Azad Mkt','Riverside','Old Bazaar','Station Rd','Green Park','Hill View','Industrial','Lake View','New Ext'];
+const VENUES=['Government Primary School','Community Hall','Municipal Library','Panchayat Bhavan','Anganwadi Centre','Middle School Ground','Saraswati Vidya Mandir','Weekly Market Shed','Sports Club Hall','Zila Parishad Office'];
+const CATS=['Water','Road','Drainage','Power','Sanitation','Health','Education','Other'];
+const DEPT={Water:'Water Works',Road:'PWD',Drainage:'Municipal Corp',Power:'Electricity Board',Sanitation:'Sanitation Dept',Health:'Health Dept',Education:'Education Dept',Other:'Revenue Dept'};
+const TEMPLATES={
+Water:['Tap water supply disrupted for {n} days','Water tanker not reaching the inner lane','Contaminated water reported at public tap','Low pressure in evening supply'],
+Road:['Potholes on the approach road','Road damaged near the market crossing','Stretch left unpaved after cable work','Needs speed breaker near school zone'],
+Drainage:['Open drain overflowing near the temple','Choked drainage causing waterlogging','Manhole lid broken on main road','Stagnant water breeding mosquitoes'],
+Power:['Street lights not working in Block {L}','Frequent voltage fluctuation reported','Transformer oil leakage reported','New connection pending for {n} months'],
+Sanitation:['Garbage collection skipped this week','No dustbin near the bus stop','Illegal dumping behind the market','Public toilet needs urgent repair'],
+Health:['Medicine stock-out at the PHC','No doctor available at evening OPD','Vaccination camp date not announced','Ambulance response time very high'],
+Education:['School building needs repair','Teacher vacancy in the middle school','Mid-day meal quality complaint','Playground encroached by parking'],
+Other:['Land record mutation pending','Ration card verification delay','Pension payment not received','Bus route extension requested']};
+const SCHEMES=[
+{n:'PM Awas Yojana',short:'PM Awas',icon:'home',unit:'households',target:'2,900'},
+{n:'Ayushman Bharat',short:'Ayushman',icon:'stethoscope',unit:'families',target:'18,400'},
+{n:'PM Ujjwala Yojana',short:'Ujjwala',icon:'flame',unit:'connections',target:'9,100'},
+{n:'PM-Kisan Samman Nidhi',short:'PM-Kisan',icon:'wheat',unit:'farmers',target:'6,700'},
+{n:'Swachh Bharat 2.0',short:'Swachh Bharat',icon:'trash-2',unit:'wards covered',target:'10'},
+{n:'MGNREGA',short:'MGNREGA',icon:'hard-hat',unit:'job cards',target:'11,200'}];
+const FIRSTS=['Arun','Priya','Vijay','Sunita','Rakesh','Meena','Deepak','Kavita','Sanjay','Rekha','Amit','Pooja','Manoj','Anita','Rohit','Shalini','Naveen','Divya','Ashok','Neelam'];
+const LASTS=['Sharma','Verma','Yadav','Singh','Patel','Gupta','Mishra','Tiwari','Chauhan','Pandey','Rathore','Dubey','Shukla','Kushwaha','Prasad','Bhatt'];
+const ROLES=['Booth Coordinator','Ward Volunteer','Youth Wing','Mahila Samiti','Survey Volunteer','Helpline Desk'];
+const MEET_T=['Ward grievance meeting','Booth committee review','Scheme awareness camp','Sector volunteering huddle','Street corner meeting'];
+const STATUS_META={strong:['Strong','bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'],competitive:['Competitive','bg-amber-50 text-amber-700 ring-1 ring-amber-200'],attention:['Needs attention','bg-red-50 text-red-700 ring-1 ring-red-200']};
+const PRIORITY_META={High:['bg-red-50 text-red-700 ring-1 ring-red-200'],Medium:['bg-amber-50 text-amber-700 ring-1 ring-amber-200'],Low:['bg-stone-100 text-stone-500 ring-1 ring-stone-200']};
+const ST_DOT={strong:'bg-emerald-500',competitive:'bg-amber-500',attention:'bg-red-500'};
+const ST_BORDER={strong:'bg-emerald-50/70 border-emerald-200 hover:border-emerald-300',competitive:'bg-amber-50/70 border-amber-200 hover:border-amber-300',attention:'bg-red-50/70 border-red-200 hover:border-red-300'};
+const C={brand:'#1f6448',brand2:'#5bb48d',brand3:'#bce3cf',amber:'#d97706',red:'#dc2626',clay:'#c2410c',teal:'#0d9488',stone:'#a8a29e',dark:'#44403c'};
+const AV_COLORS=['bg-brand-100 text-brand-800','bg-amber-100 text-amber-800','bg-teal-100 text-teal-800','bg-red-100 text-red-700','bg-stone-200 text-stone-700'];
+
+const NAV=[
+{sec:'Overview',items:[['dashboard','layout-dashboard','Dashboard'],['constituency','map','Constituency'],['booths','map-pin','Booth Analytics'],['wards','building-2','Ward Analytics']]},
+{sec:'Operations',items:[['issues','alert-circle','Issues'],['workers','users','Workers'],['campaign','calendar-days','Campaign'],['schemes','landmark','Schemes'],['feedback','message-square','Public Feedback']]},
+{sec:'Workspace',items:[['reports','file-text','Reports'],['settings','settings','Settings']]}];
+
+const NOTIFS=[
+{icon:'alert-circle',c:'bg-red-50 text-red-600',t:'New high-priority issue',d:'Drainage overflow reported at the Old Bazaar market crossing',time:'12 min ago',u:1},
+{icon:'clipboard-list',c:'bg-brand-50 text-brand-700',t:'Booth B-11 camp report submitted',d:'142 beneficiaries verified at the health camp',time:'1 hr ago',u:1},
+{icon:'users',c:'bg-amber-50 text-amber-600',t:'Volunteer coverage dropped',d:'B-07 and B-15 fell below the 45% coverage line',time:'3 hrs ago',u:1},
+{icon:'message-square',c:'bg-teal-50 text-teal-700',t:'Feedback spike detected',d:'Old Bazaar — 14 new submissions in 24 hrs',time:'5 hrs ago',u:1},
+{icon:'landmark',c:'bg-stone-100 text-stone-600',t:'Scheme verification due',d:'PM Awas list for Ward 4 needs sign-off',time:'Yesterday',u:0},
+{icon:'file-text',c:'bg-stone-100 text-stone-600',t:'Monthly report drafted',d:'The constituency report is ready for review',time:'Yesterday',u:0}];
+
+const INSIGHTS=[
+{tag:'Service delivery',tc:'bg-amber-50 text-amber-700 ring-amber-200',title:'Water-supply requests clustering in 3 eastern wards',body:'18 open water requests across Riverside, Azad Market and Old Bazaar with a median age of 9.4 days — well above the constituency median of 5.2 days.',conf:92,ind:['18 open · water','9.4d median age','3 wards'],go:['issues','Open issue board']},
+{tag:'Field network',tc:'bg-brand-50 text-brand-800 ring-brand-200',title:'Volunteer coverage below 45% in 4 booths',body:'Coverage gaps concentrate in fringe booths. A single recruitment drive of ~14 volunteers would lift the network above the 50% floor.',conf:88,ind:['4 booths < 45%','gap ≈ 14 volunteers'],go:['booths','View booth analytics']},
+{tag:'Engagement',tc:'bg-teal-50 text-teal-700 ring-teal-200',title:'Meeting attendance declining over two months',body:'Average attendance across the last six recorded meetings slipped from 84 to 74. Hill View and Lake View contribute most of the decline.',conf:81,ind:['84 → 74 avg','−12% trend','6 meetings'],go:['campaign','Plan next meetings']},
+{tag:'Citizen voice',tc:'bg-red-50 text-red-700 ring-red-200',title:'Feedback volume up 3× in Old Bazaar since drainage works began',body:'14 of 40 recent submissions reference drainage disruption; sentiment skew is 71% negative. A status-update circular could relieve pressure.',conf:85,ind:['14/40 drainage','71% negative'],go:['feedback','Read feedback']},
+{tag:'Infrastructure',tc:'bg-stone-100 text-stone-600 ring-stone-200',title:'Street-light faults dominate night-safety complaints',body:'31% of power-category issues are street-light faults, concentrated in Industrial Estate and Station Road, mostly reported after 8 PM.',conf:79,ind:['31% of power issues','2 wards'],go:['wards','Compare wards']},
+{tag:'Outreach priority',tc:'bg-brand-50 text-brand-800 ring-brand-200',title:'Five booths combine low coverage with rising issue load',body:'Recommended sequencing for the next outreach cycle, ranked by unresolved load and coverage gap. Refreshes as field data updates.',conf:90,ind:['5 booths','avg coverage 41%'],go:['booths','See booth list']}];
+
+const EV_META={meeting:{icon:'calendar',color:'#1f6448',label:'Meeting'},event:{icon:'flag',color:'#d97706',label:'Public event'},program:{icon:'landmark',color:'#0d9488',label:'Govt. programme'},drive:{icon:'users',color:'#c2410c',label:'Volunteer drive'},awareness:{icon:'megaphone',color:'#57534e',label:'Awareness campaign'}};
+const INFRA=[['Water','droplets','Water'],['Road','route','Road'],['Electricity','zap','Power'],['Drainage','waves','Drainage'],['School','graduation-cap','Education'],['Hospital','stethoscope','Health']];
+
+/* ═══════════════════ DATA GENERATION ═══════════════════ */
+let D={},CURRENT=CONSTITUENCIES[0],NONCE=0,APP=null,RENDERED={},charts={};
+
+function mkIssue(iid,b,status){
+const cat=b.status==='attention'?pick(['Water','Road','Drainage','Power','Water','Drainage','Sanitation','Health','Other']):pick(CATS);
+const title=pick(TEMPLATES[cat]).replace('{n}',ri(2,15)).replace('{L}',ri(1,9));
+const days=status==='Reported'?ri(1,20):status==='Assigned'?ri(1,14):status==='In Progress'?ri(2,25):ri(5,40);
+const pr=status!=='Resolved'&&days>12?(R()<0.6?'High':'Medium'):pick(['Medium','Low','Low','Medium','High']);
+return {id:'IS-'+iid,title,cat,dept:DEPT[cat],booth:b.id,boothName:b.venue,ward:b.wardName,area:b.wardName,days,status,pr,closed:0};
+}
+
+function generateData(){
+R=RNG(CURRENT.seed+NONCE*101);
+const wards=WNAMES.map((n,i)=>({no:i+1,name:n,short:WSHORT[i]}));
+const counts=[3,2,2,2,2,3,2,2,2,2];
+const statusPool=shuffleArr(['strong','strong','strong','strong','strong','strong','strong','strong','strong','competitive','competitive','competitive','competitive','competitive','competitive','competitive','competitive','attention','attention','attention','attention','attention']);
+const booths=[],issues=[],workers=[];let iid=1000;
+wards.forEach((w,wi)=>{for(let k=0;k<counts[wi];k++){
+const bid=booths.length+1,id='B-'+String(bid).padStart(2,'0'),st=statusPool[bid-1];
+const voters=ri(2600,4400);
+const b={id,venue:VENUES[(bid-1)%VENUES.length],no:bid,ward:w,wardName:w.name,voters,
+pop:voters+ri(900,2200),part:st==='strong'?ri(58,71):st==='competitive'?ri(50,62):ri(42,54),
+health:st==='strong'?ri(78,93):st==='competitive'?ri(56,74):ri(40,54),status:st,
+cov:st==='strong'?ri(60,88):st==='competitive'?ri(42,68):ri(22,48),
+sat:Math.round((st==='strong'?rf(4.0,4.7):st==='competitive'?rf(3.6,4.3):rf(3.0,3.9))*10)/10,
+trend:pick(['up','flat','down','up']),
+demo:{households:0,literacy:ri(64,88),male:ri(48,54),age:[ri(20,28),ri(28,34),ri(27,33),ri(10,16)]},
+schemes:[],spark:[],meetings:[],topVols:[]};
+b.demo.households=Math.round(b.pop/ri(4,5));
+const base=[62,71,58,66,74];
+SCHEMES.slice(0,5).forEach((s,i)=>b.schemes.push({n:s.short,pc:clamp(base[i]+ri(-10,10)+(st==='strong'?8:st==='attention'?-14:0),18,96)}));
+b.spark=Array.from({length:12},()=>clamp(ri(6,30)+(st==='strong'?8:st==='attention'?-4:0),2,40));
+b.meetings=[{t:pick(MEET_T),d:daysAgo(ri(4,20)),a:ri(35,85)},{t:pick(MEET_T),d:daysAgo(ri(25,60)),a:ri(30,80)}];
+booths.push(b);
+const openT=st==='strong'?ri(0,4):st==='competitive'?ri(3,8):ri(6,16);
+for(let j=0;j<openT;j++)issues.push(mkIssue(iid++,b,R()<0.42?'Reported':R()<0.5?'Assigned':'In Progress'));
+const resT=ri(3,9);
+for(let j=0;j<resT;j++){const it=mkIssue(iid++,b,'Resolved');it.closed=ri(0,45);issues.push(it)}
+}});
+for(let i=0;i<50;i++){
+const active=R()<0.6;
+workers.push({id:'W-'+(101+i),name:FIRSTS[i%20]+' '+LASTS[(i+Math.floor(i/20)*3)%16],
+ward:WARDS_PICK(i,wards),role:ROLES[i%ROLES.length],active,tasks:ri(15,120),pending:ri(0,9),
+calls:ri(20,340),last:active?pick(['8 min ago','26 min ago','1 hr ago','2 hrs ago','3 hrs ago']):pick(['Yesterday','2 days ago','3 days ago','Last week'])});
+}
+function WARDS_PICK(i,ws){return ws[(i*3+Math.floor(i/7))%10].name}
+booths.forEach(b=>{b.topVols=shuffleArr(workers.filter(w=>w.ward===b.wardName)).slice(0,3).map(w=>w.name)});
+
+/* feedback */
+const fbTxt={Positive:['Water supply improved a lot after the new pipeline work. Thank you.','The health camp at the community hall was well organised.','Street lights were fixed quickly after reporting on the helpline.','Sanitation drive in our ward was done properly this month.'],
+Negative:['Drainage overflow near the market for two weeks now.','No response from the office even after three visits.','Garbage is piling up near the school gate.','Voltage fluctuation is damaging our appliances.'],
+Neutral:['When is the next Aadhaar verification camp scheduled?','Requesting a bus stop shelter near the crossing.','Need information on my PM-Kisan status.','Please share the pension verification date.']};
+const feedback=[];const fbNames=shuffleArr(workers.map(w=>w.name.replace(/ (\w+)$/,' '+String.fromCharCode(74+ri(0,10))+'. ')));
+for(let i=0;i<14;i++){const st=pick(['Positive','Positive','Neutral','Negative','Negative','Neutral']);
+const b=pick(booths);
+feedback.push({name:pick(FIRSTS)+' '+pick(LASTS),ward:b.wardName,booth:b.id,cat:pick(CATS),sentiment:st,rating:st==='Positive'?ri(4,5):st==='Neutral'?3:ri(1,2),text:pick(fbTxt[st]),date:daysAgo(ri(0,12))})}
+
+/* events */
+const evDefs=[['Ward grievance meeting','meeting','Community Hall, Ward 3','11:00 AM',1],['Volunteer training huddle','drive','Panchayat Bhavan','5:30 PM',2],['Health check-up camp','program','PHC, Riverside','9:00 AM',3],['Door-to-door survey · Old Bazaar','drive','Old Bazaar lanes','10:00 AM',5],['PM Awas verification drive','program','Ward 4 office','12:00 PM',7],['Cleanliness awareness rally','awareness','Station Road market','7:00 AM',9],['Senior citizen help desk','program','Municipal Library','10:30 AM',11],['Mahila Samiti sammelan','event','Green Park ground','4:00 PM',13],['Drainage review with Municipal Corp','meeting','Zila Parishad Office','3:00 PM',16],['Voter register verification workshop','meeting','Booth B-05, Station Road','11:30 AM',18],['Youth sports outreach','event','Sports Club Hall','5:00 PM',21],['Tree plantation drive','drive','Lake View periphery','8:00 AM',24]];
+const today=new Date();today.setHours(0,0,0,0);
+const events=evDefs.map(e=>{const d=new Date(today.getTime()+e[4]*864e5);return{title:e[0],type:e[1],venue:e[2],time:e[3],date:d,y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()}});
+const evDate=ri(4,10);{const d=new Date(today.getTime()-evDate*864e5);events.push({title:'Ward 6 review meeting',type:'meeting',venue:'Panchayat Bhavan',time:'6:00 PM',date:d,y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()})}
+
+/* ward aggregates */
+const wardStats=wards.map(w=>{const bs=booths.filter(b=>b.ward===w);
+return {...w,booths:bs,pop:bs.reduce((s,b)=>s+b.pop,0),electors:bs.reduce((s,b)=>s+b.voters,0),
+open:issues.filter(i=>i.booth===bs[0].id||bs.some(b=>b.id===i.booth)).filter(i=>i.status!=='Resolved').length,
+cov:Math.round(bs.reduce((s,b)=>s+b.cov,0)/bs.length),health:Math.round(bs.reduce((s,b)=>s+b.health,0)/bs.length),
+sc:{strong:bs.filter(b=>b.status==='strong').length,competitive:bs.filter(b=>b.status==='competitive').length,attention:bs.filter(b=>b.status==='attention').length}}});
+
+const openIssues=issues.filter(i=>i.status!=='Resolved');
+const resolved30=issues.filter(i=>i.status==='Resolved'&&i.closed<=30);
+const covAvg=Math.round(booths.reduce((s,b)=>s+b.cov,0)/booths.length);
+const satAvg=Math.round(booths.reduce((s,b)=>s+b.sat,0)/booths.length*10)/10;
+const healthScore=Math.round(booths.reduce((s,b)=>s+b.health*b.voters,0)/booths.reduce((s,b)=>s+b.voters,0));
+const active=workers.filter(w=>w.active).length;
+const factors=[
+['Booth coverage',covAvg],['Resolution velocity',clamp(Math.round(issues.filter(i=>i.status==='Resolved').length/issues.length*140),40,95)],
+['Citizen sentiment',Math.round(satAvg/5*100)],['Field presence',clamp(Math.round(active/50*100)+8,30,95)],['Programme cadence',clamp(70+ri(-4,8),50,95)]];
+const readiness=Math.round(factors[0][1]*.25+factors[1][1]*.25+factors[2][1]*.2+factors[3][1]*.2+factors[4][1]*.1);
+
+D={wards,booths,issues,workers,feedback,events,wardStats,openIssues,resolved30,covAvg,satAvg,healthScore,readiness,factors,
+pop:booths.reduce((s,b)=>s+b.pop,0),electors:booths.reduce((s,b)=>s+b.voters,0),
+strong:booths.filter(b=>b.status==='strong').length,comp:booths.filter(b=>b.status==='competitive').length,weak:booths.filter(b=>b.status==='attention').length,
+dHealth:(rf(0.5,3.2)).toFixed(1),dOpen:ri(3,14),dResolved:ri(4,14)};
+}
+const B=id=>D.booths.find(b=>b.id===id);
+
+/* ═══════════════════ SHARED CHART THEME ═══════════════════ */
+const FONT="'Instrument Sans',sans-serif";
+function mkChart(id,opts){const el=document.getElementById(id);if(!el)return;
+if(charts[id]){try{charts[id].destroy()}catch(e){}}
+opts.chart=Object.assign({fontFamily:FONT,foreColor:'#78716c',toolbar:{show:false},animations:{speed:550}},opts.chart||{});
+charts[id]=new ApexCharts(el,opts);charts[id].render()}
+function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});charts={}}
+
+/* ═══════════════════ NAV ═══════════════════ */
+function buildNavs(){
+['navDesktop','navMobile'].forEach(nid=>{const nav=document.getElementById(nid);let h='';
+NAV.forEach(sec=>{h+=`<p class="px-5 pt-4 pb-1.5 text-[9.5px] font-mono tracking-[0.16em] text-stone-400 nav-sec">${sec.sec.toUpperCase()}</p>`;
+sec.items.forEach(([v,ic,label])=>{h+=`<button data-view="${v}" onclick="go('${v}')" class="nav-item w-full flex items-center gap-3 px-4 py-2 mx-0 text-[13px] font-medium rounded-none transition-colors" title="${label}">
+<i data-lucide="${ic}" class="w-[17px] h-[17px] shrink-0"></i><span class="nav-label truncate">${label}</span>${v==='issues'?'<span id="navIssuesBadge" class="ml-auto font-mono text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 nav-label"></span>':''}</button>`})});
+nav.innerHTML=h})}
+function updateNav(){
+document.querySelectorAll('.nav-item').forEach(btn=>{
+const on=btn.dataset.view===APP.view;
+btn.classList.remove('text-brand-800','bg-brand-50','text-stone-600');
+if(on){btn.classList.add('bg-brand-50','text-brand-800');btn.classList.add('font-semibold')}else{btn.classList.add('text-stone-600')}
+const sec=btn.closest('nav');if(sec&&sec.id!=='navMobile')btn.classList.toggle('rounded-xl',true),btn.classList.toggle('mx-3',true);
+});
+const badge=document.getElementById('navIssuesBadge');if(badge)badge.textContent=D.openIssues.length;
+}
+function go(v){APP.go(v)}
+
+/* ═══════════════════ DASHBOARD ═══════════════════ */
+function renderDashboard(){
+setKpis();renderInsights();renderMap();renderTable();renderWeekList();
+setTimeout(()=>{
+const months=lastMonths(12);
+const rep=Array.from({length:12},(_,i)=>clamp(ri(55,80)+(i>8?ri(5,18):0),40,100));
+const res=rep.map((v,i)=>clamp(v-ri(2,16)+(i>8?ri(6,14):0),35,100));
+mkChart('ch-trends',{series:[{name:'Reported',data:rep},{name:'Resolved',data:res}],chart:{type:'line',height:280},colors:[C.clay,C.brand],stroke:{width:2.5,curve:'smooth'},markers:{size:0,hover:{size:5}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3,padding:{left:6}},xaxis:{categories:months,axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{formatter:v=>Math.round(v)}},legend:{position:'top',horizontalAlign:'right',markers:{size:5},itemMargin:{horizontal:8}},tooltip:{theme:'light'}});
+const catCounts=CATS.map(c=>D.issues.filter(i=>i.cat===c).length);
+mkChart('ch-donut',{series:catCounts,labels:CATS,chart:{type:'donut',height:250},colors:[C.brand,C.brand2,C.teal,C.amber,'#ca8a04',C.clay,C.stone,C.dark],stroke:{width:2,colors:['#fff']},plotOptions:{pie:{donut:{size:'68%',labels:{show:true,value:{fontSize:'20px',fontWeight:600,fontFamily:FONT,color:'#1c1917'},total:{show:true,label:'Issues',fontSize:'11px',fontFamily:FONT,color:'#a8a29e'}}}}},legend:{position:'bottom',fontSize:'10.5px',markers:{size:4},itemMargin:{vertical:2}},dataLabels:{enabled:false},tooltip:{theme:'light'}});
+const ws=D.wardStats;
+mkChart('ch-stacked',{series:[{name:'Strong',data:ws.map(w=>w.sc.strong)},{name:'Competitive',data:ws.map(w=>w.sc.competitive)},{name:'Needs attention',data:ws.map(w=>w.sc.attention)}],chart:{type:'bar',stacked:true,height:290},colors:[C.brand,C.amber,C.red],plotOptions:{bar:{columnWidth:'52%',borderRadius:2}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{categories:ws.map(w=>w.short),axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10px'}}},yaxis:{labels:{formatter:v=>Math.round(v)}},legend:{position:'top',horizontalAlign:'right',markers:{size:4}},tooltip:{theme:'light'}});
+mkChart('ch-wardbar',{series:[{name:'Health',data:ws.map(w=>w.health)}],chart:{type:'bar',height:290},colors:[C.brand],plotOptions:{bar:{horizontal:true,borderRadius:4,barHeight:'58%'}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{max:100,axisBorder:{show:false},axisTicks:{show:false}},annotations:{xaxis:[{x:75,strokeDashArray:4,fillColor:'#f5f5f4',label:{text:'TARGET 75',style:{fontSize:'9px',fontFamily:FONT,color:'#78716c',background:'#f5f5f4'}}}]},dataLabels:{enabled:true,formatter:v=>v,style:{fontSize:'10px',fontWeight:600,colors:['#1c1917']}},tooltip:{theme:'light'}});
+const wkLbl=[];for(let i=11;i>=0;i--){const d=new Date(Date.now()-i*7*864e5);wkLbl.push(d.getDate()+' '+d.toLocaleString('en-IN',{month:'short'}))}
+const vol=Array.from({length:12},(_,i)=>clamp(34+i*2.4+ri(-9,9),26,96)|0);
+mkChart('ch-area',{series:[{name:'Active volunteers',data:vol}],chart:{type:'area',height:265},colors:[C.brand],stroke:{width:2.5,curve:'smooth'},fill:{type:'gradient',gradient:{opacityFrom:.28,opacityTo:0}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{categories:wkLbl,axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10px'}}},yaxis:{labels:{formatter:v=>Math.round(v)}},tooltip:{theme:'light'}});
+mkChart('ch-heat',{series:D.wardStats.map(w=>({name:w.name,data:lastMonths(12).map((m,i)=>({x:m,y:clamp(ri(20,48)+i*2+ri(0,10),10,100)}))})),chart:{type:'heatmap',height:300},dataLabels:{enabled:false},colors:['#1f6448'],plotOptions:{heatmap:{shadeIntensity:.7,radius:2,useFillColorAsStroke:false,colorScale:{ranges:[{from:0,to:25,color:'#eef6f1'},{from:26,to:45,color:'#cfe9db'},{from:46,to:65,color:'#9bd3b7'},{from:66,to:85,color:'#4fae83'},{from:86,to:120,color:'#1f6448'}]}}},grid:{show:false},xaxis:{labels:{style:{fontSize:'9.5px'}}},tooltip:{theme:'light'}});
+const now=Date.now(),D0=864e5;
+const tl=[['Door-to-door survey',2,12,C.brand],['Booth volunteer training',4,6,C.teal],['Health & scheme camps',8,18,C.amber],['Ward grievance meetings',1,9,C.brand2],['Voter register verification',6,20,C.clay],['Awareness rally prep',15,24,C.stone]];
+mkChart('ch-timeline',{series:[{name:'Programme',data:tl.map(t=>({x:t[0],y:[now+t[1]*D0,now+t[2]*D0],fillColor:t[3]}))}],chart:{type:'rangeBar',height:270},plotOptions:{bar:{horizontal:true,barHeight:'42%',borderRadius:5}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{type:'datetime',labels:{formatter:v=>new Date(v).getDate()+' '+new Date(v).toLocaleString('en-IN',{month:'short'}),style:{fontSize:'10px'}}},dataLabels:{enabled:false},tooltip:{theme:'light',custom:({dataPointIndex})=>{const t=tl[dataPointIndex];return `<div class="p-2 text-[11px]"><b>${t[0]}</b><br/>Day ${t[1]} → Day ${t[2]} of cycle</div>`}}});
+},80);
+}
+function setKpis(){
+countUp('sBooths',D.booths.length);countUp('sStrong',D.strong);countUp('sComp',D.comp);countUp('sWeak',D.weak);
+countUp('sOpen',D.openIssues.length);countUp('sResolved',D.resolved30.length);
+countUp('sCov',D.covAvg);countUp('sSat',D.satAvg,1);
+countUp('kHealth',D.healthScore);countUp('kReadiness',D.readiness);
+document.getElementById('sStrongSub').textContent=Math.round(D.strong/D.booths.length*100)+'% of network';
+document.getElementById('sCompSub').textContent='hold with outreach';
+document.getElementById('sWeakSub').textContent='priority this cycle';
+document.getElementById('sOpenSub').innerHTML=`<i data-lucide="trending-down" class="w-3 h-3 text-emerald-600"></i>${D.dOpen} closed vs opened`;
+document.getElementById('sResSub').innerHTML=`<i data-lucide="trending-up" class="w-3 h-3 text-emerald-600"></i>+${D.dResolved} vs last month`;
+document.getElementById('cPop').textContent=(D.pop/100000).toFixed(1)+'L';
+document.getElementById('cElect').textContent=(D.electors/100000).toFixed(1)+'L';
+document.getElementById('cBooths').textContent=D.booths.length;
+document.getElementById('cIssues').textContent=D.openIssues.length;
+document.getElementById('cHealth').textContent=D.healthScore;
+document.getElementById('kHealthDelta').innerHTML=`<i data-lucide="trending-up" class="w-3 h-3"></i>+${D.dHealth} vs last month`;
+const CIRC=326.7;setTimeout(()=>{const a=document.getElementById('gaugeArc');if(a)a.style.strokeDashoffset=CIRC*(1-D.healthScore/100);
+const f=document.getElementById('readyFill');if(f)f.style.width=D.readiness+'%'},120);
+document.getElementById('healthBreak').innerHTML=[['Booth network',D.strong+D.comp],['Issue resolution',clamp(100-Math.round(D.openIssues.length/D.issues.length*180),40,95)],['Citizen sentiment',Math.round(D.satAvg/5*100)]]
+.map(([l,v])=>`<div><div class="flex justify-between text-[10.5px] mb-1"><span class="text-stone-500">${l}</span><span class="font-mono font-medium text-stone-700">${v}</span></div><div class="h-1 rounded-full bg-stone-100"><div class="h-full rounded-full bg-brand-600" style="width:${v}%"></div></div></div>`).join('');
+document.getElementById('readyFactors').innerHTML=D.factors.map(([l,v])=>`<div><div class="flex justify-between text-[10.5px] mb-1"><span class="text-stone-500">${l}</span><span class="font-mono font-medium text-stone-700">${v}</span></div><div class="h-1 rounded-full bg-stone-100"><div class="h-full rounded-full bg-brand-500" style="width:${v}%"></div></div></div>`).join('');
+}
+function renderInsights(){
+document.getElementById('insightList').innerHTML=INSIGHTS.map((s,i)=>`
+<div class="rounded-xl bg-white border border-[#ece5d4] p-3.5 card-hover">
+<span class="inline-block text-[9.5px] font-mono tracking-wide px-2 py-0.5 rounded-full ring-1 ${s.tc}">${s.tag.toUpperCase()}</span>
+<p class="text-[13px] font-semibold leading-snug mt-2 text-stone-800">${s.title}</p>
+<p class="text-[11.5px] text-stone-500 leading-relaxed mt-1.5">${s.body}</p>
+<div class="mt-2.5 flex items-center gap-2">
+<div class="flex-1 h-1.5 rounded-full bg-stone-100 overflow-hidden"><div class="h-full rounded-full bg-brand-600" style="width:${s.conf}%"></div></div>
+<span class="font-mono text-[10.5px] font-semibold text-brand-800">${s.conf}%</span>
+</div>
+<div class="mt-2 flex flex-wrap gap-1.5">${s.ind.map(x=>`<span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded bg-stone-50 border border-stone-100 text-stone-500">${x}</span>`).join('')}</div>
+<button onclick="go('${s.go[0]}')" class="mt-2.5 text-[11.5px] font-medium text-brand-700 hover:underline">${s.go[1]} →</button>
+</div>`).join('');
+}
+
+/* map */
+let mapFilter='all';
+function setMapFilter(f){mapFilter=f;renderMap();renderMapChips()}
+function renderMapChips(){
+const chips=[['all','All'],['strong','Good'],['competitive','Watch'],['attention','Needs attention']];
+document.getElementById('mapChips').innerHTML=chips.map(([v,l])=>`<button onclick="setMapFilter('${v}')" class="text-[11px] font-medium px-2.5 py-1 rounded-full transition ${mapFilter===v?'bg-stone-800 text-white':'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}">${l}</button>`).join('')}
+function boothCard(b){const s=STATUS_META[b.status];
+return `<button onclick="openBooth('${b.id}')" onmouseenter="showTip(event,'${b.id}')" onmouseleave="hideTip()" class="booth-card text-left rounded-xl border p-3 ${ST_BORDER[b.status]}">
+<div class="flex items-center justify-between"><span class="font-mono text-[10px] text-stone-500">${b.id}</span><span class="w-2 h-2 rounded-full ${ST_DOT[b.status]}"></span></div>
+<p class="text-[11.5px] font-medium text-stone-800 leading-tight mt-1.5 truncate">${b.venue}</p>
+<p class="font-mono text-[9.5px] text-stone-400 mt-1.5 tnum">${fmtN(b.voters)} voters · ${b.issuesOpen} issues</p></button>`}
+function renderMap(){
+D.booths.forEach(b=>b.issuesOpen=D.issues.filter(i=>i.booth===b.id&&i.status!=='Resolved').length);
+let h='';D.wardStats.forEach(w=>{const bs=w.booths.filter(b=>mapFilter==='all'||b.status===mapFilter);if(!bs.length)return;
+h+=`<div><div class="flex items-center gap-2 mb-2"><span class="font-mono text-[9.5px] text-stone-400">WARD ${w.no}</span><span class="text-[12px] font-medium text-stone-700">${w.name}</span><span class="h-px flex-1 bg-stone-100"></span></div>
+<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">${bs.map(boothCard).join('')}</div></div>`});
+document.getElementById('mapGrid').innerHTML=h||'<p class="text-[13px] text-stone-400 py-6 text-center">No booths in this filter.</p>';
+renderMapChips()}
+function showTip(ev,id){const b=B(id),tip=document.getElementById('boothTip');
+const overdue=D.issues.filter(i=>i.booth===id&&i.status!=='Resolved'&&i.days>10).length;
+const covC=b.cov>=60?'text-emerald-600':b.cov>=40?'text-amber-600':'text-red-600';
+tip.innerHTML=`<div class="w-60 rounded-xl bg-stone-900 text-white p-3.5 shadow-pop">
+<p class="text-[12.5px] font-semibold leading-tight">${b.venue}</p>
+<p class="font-mono text-[9.5px] text-white/50 mt-0.5">${b.id} · WARD ${b.ward.no} — ${b.wardName.toUpperCase()}</p>
+<div class="mt-2.5 space-y-1.5 text-[11px]">
+<div class="flex justify-between"><span class="text-white/60">Population</span><span class="font-mono">${fmtN(b.pop)}</span></div>
+<div class="flex justify-between"><span class="text-white/60">Open issues</span><span class="font-mono ${b.issuesOpen>8?'text-red-400':''}">${b.issuesOpen}</span></div>
+<div class="flex justify-between"><span class="text-white/60">Volunteer coverage</span><span class="font-mono ${covC}">${b.cov}%</span></div>
+<div class="flex justify-between"><span class="text-white/60">Service requests</span><span class="font-mono">${overdue?`${b.issuesOpen} open · ${overdue} overdue`:'all on track'}</span></div>
+</div>
+<p class="mt-2.5 pt-2 border-t border-white/10 text-[9.5px] text-white/40 font-mono">CLICK FOR FULL DRILLDOWN</p></div>`;
+tip.classList.remove('hidden');positionTip(ev)}
+function positionTip(ev){const tip=document.getElementById('boothTip');const r=tip.getBoundingClientRect();
+let x=ev.clientX+14,y=ev.clientY-r.height-12;if(x+r.width>innerWidth-12)x=ev.clientX-r.width-14;if(y<12)y=ev.clientY+16;
+tip.style.left=x+'px';tip.style.top=y+'px'}
+function hideTip(){document.getElementById('boothTip').classList.add('hidden')}
+
+/* table */
+let tblQ='',tblWard='',tblStatus='all',sortK='health',sortDir=-1;
+function tblSearchInput(v){tblQ=v.toLowerCase();renderTable()}
+function tblWardSel(v){tblWard=v;renderTable()}
+function tblStatusSel(v){tblStatus=v;renderTable();renderTblChips()}
+function sortTable(k){if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=-1}renderTable()}
+function renderTblChips(){
+const chips=[['all','All'],['strong','Strong'],['competitive','Competitive'],['attention','Needs attention']];
+document.getElementById('tblChips').innerHTML=chips.map(([v,l])=>`<button onclick="tblStatusSel('${v}')" class="text-[11px] font-medium px-2.5 py-1 rounded-full transition ${tblStatus===v?'bg-stone-800 text-white':'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}">${l}</button>`).join('')}
+function renderTable(){
+let rows=D.booths.filter(b=>(!tblQ||(b.venue+b.id+b.wardName).toLowerCase().includes(tblQ))&&(!tblWard||b.wardName===tblWard)&&(tblStatus==='all'||b.status===tblStatus));
+const key={voters:b=>b.voters,part:b=>b.part,issues:b=>b.issuesOpen,cov:b=>b.cov,health:b=>b.health}[sortK];
+rows=rows.slice().sort((a,b)=>(key(a)-key(b))*sortDir);
+const html=rows.map(b=>{const [sl,sc]=STATUS_META[b.status];
+const covC=b.cov>=60?'bg-emerald-500':b.cov>=40?'bg-amber-500':'bg-red-500';
+const pr=b.status==='attention'?'P1':b.status==='competitive'?'P2':'P3';
+return `<tr class="border-b border-stone-100 hover:bg-stone-50/70 cursor-pointer transition-colors" onclick="openBooth('${b.id}')">
+<td class="px-5 py-2.5"><p class="font-medium text-[12.5px] leading-tight">${b.venue}</p><p class="font-mono text-[9.5px] text-stone-400">${b.id}</p></td>
+<td class="px-3 py-2.5 text-[12px] text-stone-500">${b.wardName}</td>
+<td class="px-3 py-2.5 font-mono text-[12px] tnum">${fmtN(b.voters)}</td>
+<td class="px-3 py-2.5"><div class="flex items-center gap-2"><div class="w-14 h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full bg-brand-500" style="width:${b.part}%"></div></div><span class="font-mono text-[11px] text-stone-500">${b.part}%</span></div></td>
+<td class="px-3 py-2.5"><span class="inline-block min-w-[26px] text-center font-mono text-[11px] px-1.5 py-0.5 rounded-md ${b.issuesOpen>8?'bg-red-50 text-red-600':b.issuesOpen>3?'bg-amber-50 text-amber-600':'bg-stone-100 text-stone-500'}">${b.issuesOpen}</span></td>
+<td class="px-3 py-2.5"><div class="flex items-center gap-2"><div class="w-14 h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full ${covC}" style="width:${b.cov}%"></div></div><span class="font-mono text-[11px] text-stone-500">${b.cov}%</span></div></td>
+<td class="px-3 py-2.5"><div class="flex items-center gap-1"><i data-lucide="star" class="w-3 h-3 text-amber-400 fill-amber-400"></i><span class="font-mono text-[12px]">${b.sat.toFixed(1)}</span></div></td>
+<td class="px-3 py-2.5"><span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${sc}"><span class="w-1.5 h-1.5 rounded-full ${ST_DOT[b.status]}"></span>${b.health} · ${sl}</span></td>
+<td class="px-3 py-2.5"><span class="font-mono text-[10.5px] font-semibold px-1.5 py-0.5 rounded ${pr==='P1'?'bg-red-50 text-red-600':pr==='P2'?'bg-amber-50 text-amber-600':'bg-stone-100 text-stone-400'}">${pr}</span></td>
+<td class="px-5 py-2.5 text-right"><span class="inline-flex items-center gap-1 text-[11.5px] font-medium text-brand-700 group-hover:underline">Open<i data-lucide="arrow-up-right" class="w-3 h-3"></i></span></td></tr>`}).join('');
+document.querySelectorAll('.boothTblBody').forEach(t=>t.innerHTML=html);
+document.querySelectorAll('.tblCount').forEach(s=>s.textContent='· '+rows.length+' booths');
+document.querySelectorAll('.sortArr').forEach(s=>{s.innerHTML=sortK===s.dataset.k?`<i data-lucide="${sortDir>0?'arrow-up':'arrow-down'}" class="w-3 h-3 inline"></i>`:''});
+const sel=document.querySelector('select[onchange="tblWardSel(this.value)"]');
+if(sel&&!sel.options.length)sel.innerHTML='<option value="">All wards</option>'+D.wardStats.map(w=>`<option>${w.name}</option>`).join('');
+}
+function renderWeekList(){
+const today=new Date();today.setHours(0,0,0,0);
+const wk=D.events.filter(e=>{const d=(e.date-today)/864e5;return d>=0&&d<7}).sort((a,b)=>a.date-b.date);
+document.getElementById('weekList').innerHTML=wk.length?wk.map(e=>{const m=EV_META[e.type];
+return `<div class="flex items-center gap-2.5 py-2 border-b border-stone-50 last:border-0">
+<span class="w-7 h-7 rounded-lg grid place-items-center shrink-0" style="background:${m.color}14"><i data-lucide="${m.icon}" class="w-3.5 h-3.5" style="color:${m.color}"></i></span>
+<div class="min-w-0"><p class="text-[12.5px] font-medium truncate">${e.title}</p><p class="text-[10.5px] text-stone-400 font-mono">${e.date.getDate()} ${e.date.toLocaleString('en-IN',{month:'short'})} · ${e.time}</p></div></div>`}).join(''):'<p class="text-[12.5px] text-stone-400">No engagements in the next 7 days.</p>'}
+
+/* ═══════════════════ CONSTITUENCY VIEW ═══════════════════ */
+function renderConstituency(){
+document.getElementById('cvName').innerHTML=CURRENT.name.split(' ')[0]+' <span class="font-serif italic font-normal">'+CURRENT.name.split(' ').slice(1).join(' ')+'</span>';
+document.getElementById('cvDesc').textContent=CURRENT.desc;
+const facts=[['District',CURRENT.district],['Wards','10'],['Polling booths',D.booths.length],['Population',fmtN(D.pop)],['Registered electors',fmtN(D.electors)],['Avg. booth health',D.healthScore+'/100']];
+document.getElementById('cvFacts').innerHTML=facts.map(([l,v])=>`<div class="rounded-xl bg-white/10 ring-1 ring-white/15 backdrop-blur px-3.5 py-3"><p class="text-[9.5px] font-mono tracking-widest text-white/60">${l.toUpperCase()}</p><p class="text-[17px] font-semibold mt-1 tnum">${v}</p></div>`).join('');
+document.getElementById('cvWardRows').innerHTML=D.wardStats.map(w=>`
+<tr class="hover:bg-stone-50/70 cursor-pointer transition-colors" onclick="go('wards')">
+<td class="px-5 py-3"><span class="font-mono text-[10px] text-stone-400 mr-2">W${w.no}</span><span class="font-medium">${w.name}</span></td>
+<td class="px-3 py-3 font-mono text-[12px]">${w.booths.length}</td>
+<td class="px-3 py-3 font-mono text-[12px] tnum">${fmtN(w.pop)}</td>
+<td class="px-3 py-3 font-mono text-[12px] tnum">${fmtN(w.electors)}</td>
+<td class="px-3 py-3 font-mono text-[12px] ${w.open>12?'text-red-600 font-medium':''}">${w.open}</td>
+<td class="px-3 py-3"><div class="flex items-center gap-2"><div class="w-16 h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full ${w.cov>=60?'bg-emerald-500':w.cov>=40?'bg-amber-500':'bg-red-500'}" style="width:${w.cov}%"></div></div><span class="font-mono text-[11px]">${w.cov}%</span></div></td>
+<td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_META[w.health>=75?'strong':w.health>=55?'competitive':'attention'][1]}"><span class="w-1.5 h-1.5 rounded-full ${ST_DOT[w.health>=75?'strong':w.health>=55?'competitive':'attention']}"></span>${w.health}</span></td></tr>`).join('');
+}
+
+/* ═══════════════════ BOOTH ANALYTICS VIEW ═══════════════════ */
+function renderBooths(){
+renderTable();
+setTimeout(()=>{
+const ws=D.wardStats;
+mkChart('ch-boothstack',{series:[{name:'Strong',data:ws.map(w=>w.sc.strong)},{name:'Competitive',data:ws.map(w=>w.sc.competitive)},{name:'Needs attention',data:ws.map(w=>w.sc.attention)}],chart:{type:'bar',stacked:true,height:320},colors:[C.brand,C.amber,C.red],plotOptions:{bar:{columnWidth:'52%',borderRadius:2}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{categories:ws.map(w=>w.short),axisBorder:{show:false},axisTicks:{show:false},labels:{style:{fontSize:'10px'}}},legend:{position:'top',horizontalAlign:'right',markers:{size:4}},tooltip:{theme:'light'}});
+mkChart('ch-boothdonut',{series:[D.strong,D.comp,D.weak],labels:['Strong','Competitive','Needs attention'],chart:{type:'donut',height:300},colors:[C.brand,C.amber,C.red],stroke:{width:2,colors:['#fff']},plotOptions:{pie:{donut:{size:'70%',labels:{show:true,value:{fontSize:'22px',fontWeight:600,fontFamily:FONT,color:'#1c1917'},total:{show:true,label:'Booths',fontSize:'11px',fontFamily:FONT,color:'#a8a29e'}}}}},legend:{position:'bottom',fontSize:'11.5px',markers:{size:4}},dataLabels:{enabled:false},tooltip:{theme:'light'}});
+},80);
+const row=(b)=>{const [sl,sc]=STATUS_META[b.status];
+return `<button onclick="openBooth('${b.id}')" class="w-full flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-stone-50 text-left transition">
+<span class="font-mono text-[10px] text-stone-400 w-9">${b.id}</span>
+<span class="flex-1 min-w-0"><span class="block text-[12.5px] font-medium truncate">${b.venue}</span><span class="block text-[10.5px] text-stone-400">${b.wardName}</span></span>
+<span class="font-mono text-[12px] font-semibold ${b.status==='attention'?'text-red-600':'text-brand-800'}">${b.health}</span>
+<span class="w-1.5 h-1.5 rounded-full ${ST_DOT[b.status]}"></span></button>`};
+document.getElementById('topBooths').innerHTML=D.booths.slice().sort((a,b)=>b.health-a.health).slice(0,5).map(row).join('');
+document.getElementById('weakBooths').innerHTML=D.booths.slice().sort((a,b)=>a.health-b.health).slice(0,5).map(row).join('');
+}
+
+/* ═══════════════════ WARD VIEW ═══════════════════ */
+function renderWards(){
+const ws=D.wardStats;
+const best=ws.slice().sort((a,b)=>b.health-a.health)[0],worst=ws.slice().sort((a,b)=>a.health-b.health)[0];
+const cards=[['Best performing ward',best.name+' · '+best.health,'bg-emerald-50 text-emerald-700'],['Needs focus',worst.name+' · '+worst.health,'bg-red-50 text-red-600'],['Avg. volunteer coverage',D.covAvg+'%','bg-brand-50 text-brand-800'],['Open issues · all wards',D.openIssues.length,'bg-amber-50 text-amber-700']];
+document.getElementById('wardStats').innerHTML=cards.map(([l,v,c])=>`<div class="card card-hover p-4"><p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">${l}</p><p class="mt-1.5 text-[19px] font-semibold tracking-tight"><span class="inline-block px-2 py-0.5 rounded-lg text-[15px] ${c}">${v}</span></p></div>`).join('');
+document.getElementById('wardRows').innerHTML=ws.map(w=>{const tot=w.booths.length;
+return `<tr class="hover:bg-stone-50/70 transition-colors">
+<td class="px-5 py-3"><span class="font-mono text-[10px] text-stone-400 mr-2">W${w.no}</span><span class="font-medium">${w.name}</span></td>
+<td class="px-3 py-3 font-mono text-[12px]">${tot}</td>
+<td class="px-3 py-3 font-mono text-[12px] tnum">${fmtN(w.pop)}</td>
+<td class="px-3 py-3 font-mono text-[12px] tnum">${fmtN(w.electors)}</td>
+<td class="px-3 py-3 font-mono text-[12px] ${w.open>12?'text-red-600 font-medium':''}">${w.open}</td>
+<td class="px-3 py-3"><div class="flex items-center gap-2"><div class="w-16 h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full ${w.cov>=60?'bg-emerald-500':w.cov>=40?'bg-amber-500':'bg-red-500'}" style="width:${w.cov}%"></div></div><span class="font-mono text-[11px]">${w.cov}%</span></div></td>
+<td class="px-3 py-3"><div class="flex h-1.5 w-24 rounded-full overflow-hidden bg-stone-100"><div class="bg-emerald-500" style="width:${w.sc.strong/tot*100}%"></div><div class="bg-amber-400" style="width:${w.sc.competitive/tot*100}%"></div><div class="bg-red-400" style="width:${w.sc.attention/tot*100}%"></div></div></td>
+<td class="px-5 py-3"><span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_META[w.health>=75?'strong':w.health>=55?'competitive':'attention'][1]}">${w.health}</span></td></tr>`}).join('');
+setTimeout(()=>{
+mkChart('ch-wardbig',{series:[{name:'Health',data:ws.map(w=>w.health)},{name:'Coverage',data:ws.map(w=>w.cov)}],chart:{type:'bar',height:360},colors:[C.brand,C.brand2],plotOptions:{bar:{horizontal:true,borderRadius:4,barHeight:'55%'}},grid:{borderColor:'rgba(231,229,228,.8)',strokeDashArray:3},xaxis:{max:100,axisBorder:{show:false},axisTicks:{show:false}},dataLabels:{enabled:false},legend:{position:'top',horizontalAlign:'right',markers:{size:4}},tooltip:{theme:'light'}});
+},80);
+}
+
+/* ═══════════════════ ISSUES KANBAN ═══════════════════ */
+let dragId=null,kbFilter='',kbExpanded={};
+const KCOLS=[['Reported','#a8a29e'],['Assigned','#d97706'],['In Progress','#37996f'],['Resolved','#1f6448']];
+function kanbanFilter(v){kbFilter=v;renderKanban()}
+function startDrag(id,el){dragId=id;setTimeout(()=>el.classList.add('opacity-40'),0)}
+function renderKanban(){
+const open=D.issues.filter(i=>i.status!=='Resolved').length;
+document.getElementById('kanbanTotal').textContent=open;
+document.getElementById('kanban').innerHTML=KCOLS.map(([st,col])=>{
+let list=D.issues.filter(i=>i.status===st&&(!kbFilter||i.pr===kbFilter));
+if(st==='Resolved')list=list.slice().sort((a,b)=>a.closed-b.closed);else list=list.slice().sort((a,b)=>(a.pr==='High'?0:a.pr==='Medium'?1:2)-(b.pr==='High'?0:b.pr==='Medium'?1:2)||b.days-a.days);
+const shown=kbExpanded[st]?list:list.slice(0,6);
+const cards=shown.map(i=>{const overdue=i.status!=='Resolved'&&i.days>10;
+return `<div draggable="true" ondragstart="startDrag('${i.id}',this)" ondragend="this.classList.remove('opacity-40')" class="bg-white rounded-xl border border-stone-200 p-3 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition cursor-grab active:cursor-grabbing">
+<div class="flex justify-between gap-2"><p class="text-[12.5px] font-medium leading-snug">${i.title}</p><span class="font-mono text-[9px] text-stone-300 shrink-0">${i.id}</span></div>
+<div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10.5px] text-stone-500">
+<span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 text-stone-300"></i>${i.area}</span>
+<span class="flex items-center gap-1"><i data-lucide="building-2" class="w-3 h-3 text-stone-300"></i>${i.dept}</span></div>
+<div class="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between">
+<span class="font-mono text-[10px] ${overdue?'text-red-600 font-semibold':'text-stone-400'}">${i.status==='Resolved'?'closed in '+i.days+'d':i.days+'d pending'}</span>
+<span class="text-[9.5px] font-semibold px-1.5 py-0.5 rounded ${PRIORITY_META[i.pr][0]}">${i.pr}</span></div></div>`}).join('');
+return `<div class="card p-3">
+<div class="flex items-center justify-between px-1 pb-2.5">
+<div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full" style="background:${col}"></span><h3 class="text-[13px] font-semibold">${st}</h3>
+<span class="font-mono text-[10px] px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-500">${list.length}</span></div>
+<i data-lucide="${st==='Reported'?'inbox':st==='Assigned'?'user':st==='In Progress'?'activity':'check-circle'}" class="w-3.5 h-3.5 text-stone-300"></i></div>
+<div class="kanban-body rounded-xl space-y-2 p-1 min-h-[140px] transition" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="event.preventDefault();this.classList.remove('drag-over');dropIssue('${st}')">${cards||'<p class="text-[11px] text-stone-300 text-center py-6">Drop issues here</p>'}</div>
+${list.length>6?`<button onclick="toggleCol('${st}')" class="w-full mt-2 text-[11px] font-medium text-stone-400 hover:text-brand-700 py-1 transition">${kbExpanded[st]?'Show less':'+'+(list.length-6)+' more in register'}</button>`:''}</div>`}).join('');
+}
+function dropIssue(st){if(!dragId)return;const i=D.issues.find(x=>x.id===dragId);
+if(i&&i.status!==st){i.status=st;showToast(i.id+' moved to '+st,'check-circle')}
+dragId=null;renderKanban()}
+function toggleCol(st){kbExpanded[st]=!kbExpanded[st];renderKanban()}
+
+/* ═══════════════════ WORKERS VIEW ═══════════════════ */
+let wkQ='';
+function wkSearch(v){wkQ=v.toLowerCase();renderWorkerRows()}
+function renderWorkerRows(){
+const rows=D.workers.filter(w=>!wkQ||(w.name+w.ward+w.role).toLowerCase().includes(wkQ));
+document.getElementById('wkCount').textContent='· '+rows.length+' workers';
+document.getElementById('workerRows').innerHTML=rows.map((w,i)=>`
+<tr class="hover:bg-stone-50/70 transition-colors">
+<td class="px-5 py-2.5"><div class="flex items-center gap-2.5"><span class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-semibold ${AV_COLORS[i%5]}">${w.name.split(' ').map(x=>x[0]).join('')}</span><span><p class="font-medium text-[12.5px] leading-tight">${w.name}</p><p class="font-mono text-[9.5px] text-stone-400">${w.id}</p></span></div></td>
+<td class="px-3 py-2.5 text-[12px] text-stone-500">${w.ward}</td>
+<td class="px-3 py-2.5 text-[12px] text-stone-500">${w.role}</td>
+<td class="px-3 py-2.5 font-mono text-[12px] tnum">${w.tasks}</td>
+<td class="px-3 py-2.5 font-mono text-[12px] tnum ${w.pending>6?'text-amber-600 font-medium':''}">${w.pending}</td>
+<td class="px-3 py-2.5 font-mono text-[12px] tnum">${w.calls}</td>
+<td class="px-3 py-2.5 text-[11.5px] text-stone-400">${w.last}</td>
+<td class="px-5 py-2.5"><span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${w.active?'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200':'bg-stone-100 text-stone-500'}"><span class="w-1.5 h-1.5 rounded-full ${w.active?'bg-emerald-500':'bg-stone-300'}"></span>${w.active?'Active':'Off today'}</span></td></tr>`).join('')}
+function renderWorkers(){
+const active=D.workers.filter(w=>w.active).length,done=D.workers.reduce((s,w)=>s+w.tasks,0),pend=D.workers.reduce((s,w)=>s+w.pending,0);
+const cells=[['Total workers',D.workers.length,'text-stone-800'],['Active today',active,'text-emerald-700'],['Inactive',50-active,'text-stone-500'],['Tasks completed · 30d',done,'text-stone-800'],['Tasks pending',pend,'text-amber-600']];
+document.getElementById('workerStrip').innerHTML=cells.map(([l,v,c])=>`<div class="p-4 rounded-xl hover:bg-stone-50 transition"><p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide">${l}</p><p class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight ${c}">${fmtN(v)}</p></div>`).join('');
+const top=D.workers.slice().sort((a,b)=>b.tasks-a.tasks).slice(0,8),mx=top[0].tasks;
+document.getElementById('leaderboard').innerHTML=top.map((w,i)=>`
+<div class="flex items-center gap-3 py-2 border-b border-stone-50 last:border-0">
+<span class="font-mono text-[11px] w-5 ${i<3?'text-brand-700 font-semibold':'text-stone-300'}">${String(i+1).padStart(2,'0')}</span>
+<span class="w-8 h-8 rounded-full grid place-items-center text-[11px] font-semibold ${AV_COLORS[i%5]}">${w.name.split(' ').map(x=>x[0]).join('')}</span>
+<div class="flex-1 min-w-0"><p class="text-[12.5px] font-medium truncate">${w.name}</p><p class="text-[10.5px] text-stone-400">${w.role} · ${w.ward}</p>
+<div class="mt-1 h-1 rounded-full bg-stone-100 max-w-[180px]"><div class="h-full rounded-full bg-brand-500" style="width:${w.tasks/mx*100}%"></div></div></div>
+<span class="font-mono text-[13px] font-semibold text-stone-700 tnum">${w.tasks}</span></div>`).join('');
+const acts=[];const templates=[['completed 32 survey entries at {b}','clipboard-list'],['logged issue — Road, {w}','alert-circle'],['made {n} voter-confirmation calls','phone'],['uploaded booth register photo · {b}','check-circle'],['attended ward review meeting','users'],['closed issue with Water Works','wrench']];
+for(let i=0;i<8;i++){const w=D.workers[ri(0,49)],t=pick(templates);
+acts.push({name:w.name,txt:t[0].replace('{b}','B-'+String(ri(1,22)).padStart(2,'0')).replace('{w}',pick(WNAMES)).replace('{n}',ri(15,60)),icon:t[1],time:pick(['12m ago','35m ago','1 hr ago','2 hrs ago','3 hrs ago','5 hrs ago'])})}
+document.getElementById('activityFeed').innerHTML=acts.map(a=>`
+<div class="flex gap-3 py-2.5 border-b border-stone-50 last:border-0">
+<span class="w-7 h-7 rounded-full bg-stone-100 grid place-items-center shrink-0"><i data-lucide="${a.icon}" class="w-3.5 h-3.5 text-stone-500"></i></span>
+<div class="min-w-0"><p class="text-[12.5px] leading-snug"><span class="font-medium">${a.name}</span> <span class="text-stone-500">${a.txt}</span></p><p class="font-mono text-[9.5px] text-stone-400 mt-0.5">${a.time}</p></div></div>`).join('');
+const byWard={};D.workers.forEach(w=>byWard[w.ward]=(byWard[w.ward]||0)+1);
+document.getElementById('teamWards').innerHTML=Object.entries(byWard).sort((a,b)=>b[1]-a[1]).map(([w,n])=>`
+<div><div class="flex justify-between text-[11.5px] mb-1"><span class="text-stone-600">${w}</span><span class="font-mono text-stone-500">${n}</span></div>
+<div class="h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full bg-brand-400" style="width:${n/8*100}%"></div></div></div>`).join('');
+renderWorkerRows();
+}
+
+/* ═══════════════════ CAMPAIGN VIEW ═══════════════════ */
+let calOffset=0,selectedDay=null;
+function calMove(d){calOffset+=d;renderCalendar()}
+function renderCalendar(){
+const base=new Date();const view=new Date(base.getFullYear(),base.getMonth()+calOffset,1);
+const y=view.getFullYear(),m=view.getMonth();
+document.getElementById('calLabel').textContent=view.toLocaleString('en-IN',{month:'long',year:'numeric'});
+document.getElementById('calLegend').innerHTML=Object.entries(EV_META).map(([k,v])=>`<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:${v.color}"></span>${v.label}</span>`).join('');
+const firstDow=(new Date(y,m,1).getDay()+6)%7,days=new Date(y,m+1,0).getDate();
+const today=new Date();today.setHours(0,0,0,0);
+let h='';for(let i=0;i<firstDow;i++)h+='<div></div>';
+for(let d=1;d<=days;d++){const key=y+'-'+(m+1)+'-'+d;
+const evs=D.events.filter(e=>e.y===y&&e.m===m+1&&e.d===d);
+const isToday=calOffset===0&&d===today.getDate()&&m===today.getMonth();
+const past=new Date(y,m,d)<today;
+h+=`<button onclick="selectDay('${key}')" class="cal-day rounded-lg border ${selectedDay===key?'border-brand-500 ring-2 ring-brand-100':'border-stone-100'} ${isToday?'bg-brand-50/70 border-brand-300':'bg-white'} ${past&&!evs.length?'opacity-45':''} p-1.5 min-h-[74px] text-left align-top">
+<span class="font-mono text-[10.5px] ${isToday?'text-brand-800 font-semibold':'text-stone-500'}">${d}</span>
+${evs.slice(0,2).map(e=>{const mt=EV_META[e.type];return `<span class="mt-1 block truncate text-[8.5px] font-medium px-1 py-0.5 rounded" style="background:${mt.color}14;color:${mt.color}">${e.title}</span>`}).join('')}
+${evs.length>2?`<span class="block text-[8.5px] text-stone-400 font-mono mt-0.5">+${evs.length-2} more</span>`:''}</button>`}
+document.getElementById('calGrid').innerHTML=h;
+const up=D.events.filter(e=>e.date>=today).sort((a,b)=>a.date-b.date).slice(0,6);
+document.getElementById('upcomingList').innerHTML=up.map(e=>{const mt=EV_META[e.type];
+return `<div class="flex gap-2.5 py-2.5 border-b border-stone-50 last:border-0">
+<span class="w-8 h-8 rounded-lg grid place-items-center shrink-0" style="background:${mt.color}14"><i data-lucide="${mt.icon}" class="w-4 h-4" style="color:${mt.color}"></i></span>
+<div class="min-w-0"><p class="text-[12.5px] font-medium leading-snug">${e.title}</p>
+<p class="text-[10.5px] text-stone-400 mt-0.5"><span class="font-mono">${e.date.getDate()} ${e.date.toLocaleString('en-IN',{month:'short'})} · ${e.time}</span> · ${e.venue}</p></div></div>`}).join('');
+if(selectedDay)selectDay(selectedDay);
+}
+function selectDay(key){selectedDay=key;renderCalendar();
+const evs=D.events.filter(e=>e.y+'-'+e.m+'-'+e.d===key);
+document.getElementById('dayList').innerHTML=evs.length?evs.map(e=>{const mt=EV_META[e.type];
+return `<div class="flex gap-2 py-2 border-b border-stone-50 last:border-0"><span class="w-1 rounded-full shrink-0" style="background:${mt.color}"></span>
+<div><p class="text-[12.5px] font-medium">${e.title}</p><p class="text-[10.5px] text-stone-400 mt-0.5">${mt.label} · ${e.time} · ${e.venue}</p></div></div>`}).join(''):'<p class="text-[12.5px]">No engagements scheduled for this day.</p>'}
+function toggleEventForm(){document.getElementById('eventForm').classList.toggle('hidden')}
+function addEvent(){const t=document.getElementById('evTitle').value.trim(),d=document.getElementById('evDate').value;
+if(!t||!d){showToast('Please enter a title and date','alert-circle');return}
+const dt=new Date(d+'T00:00:00');
+D.events.push({title:t,type:document.getElementById('evType').value,venue:'Constituency office',time:'10:00 AM',date:dt,y:dt.getFullYear(),m:dt.getMonth()+1,d:dt.getDate()});
+document.getElementById('evTitle').value='';toggleEventForm();renderCalendar();showToast('Engagement added to the calendar','calendar')}
+function renderCampaign(){renderCalendar()}
+
+/* ═══════════════════ SCHEMES VIEW ═══════════════════ */
+function renderSchemes(){
+document.getElementById('schemeRows').innerHTML=SCHEMES.map((s,i)=>{const pc=clamp([74,68,71,58,82,63][i]+ri(-6,6),40,95);
+const ben=fmtN(ri(1800,9200)*10).slice(0,6).replace(/,$/,'');
+const st=pc>=70?['On track','bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200']:pc>=55?['Watch','bg-amber-50 text-amber-700 ring-1 ring-amber-200']:['Review','bg-red-50 text-red-700 ring-1 ring-red-200'];
+return `<div class="flex items-center gap-4 p-5 hover:bg-stone-50/70 transition">
+<span class="w-10 h-10 rounded-xl bg-brand-50 grid place-items-center shrink-0"><i data-lucide="${s.icon}" class="w-5 h-5 text-brand-700"></i></span>
+<div class="min-w-0 flex-1"><p class="text-[13.5px] font-semibold">${s.n}</p><p class="text-[11.5px] text-stone-400 mt-0.5 font-mono">${ben} ${s.unit} enrolled · target ${s.target}</p></div>
+<div class="hidden sm:flex items-center gap-2.5 w-44"><div class="flex-1 h-2 rounded-full bg-stone-100"><div class="h-full rounded-full ${pc>=70?'bg-emerald-500':pc>=55?'bg-amber-500':'bg-red-500'}" style="width:${pc}%"></div></div><span class="font-mono text-[12px] font-semibold tnum">${pc}%</span></div>
+<span class="text-[10.5px] font-medium px-2 py-0.5 rounded-full ${st[1]} shrink-0">${st[0]}</span></div>`}).join('');
+setTimeout(()=>{mkChart('ch-schemes',{series:SCHEMES.map((s,i)=>ri(900,4200)),labels:SCHEMES.map(s=>s.short),chart:{type:'donut',height:270},colors:[C.brand,C.teal,C.amber,C.clay,C.brand2,C.stone],stroke:{width:2,colors:['#fff']},plotOptions:{pie:{donut:{size:'68%',labels:{show:true,value:{fontSize:'18px',fontWeight:600,fontFamily:FONT,color:'#1c1917'},total:{show:true,label:'Beneficiaries',fontSize:'10px',fontFamily:FONT,color:'#a8a29e'}}}}},legend:{position:'bottom',fontSize:'10.5px',markers:{size:4}},dataLabels:{enabled:false},tooltip:{theme:'light'}})},80);
+}
+
+/* ═══════════════════ FEEDBACK VIEW ═══════════════════ */
+let fbF='all';
+function fbFilterSet(f){fbF=f;renderFeedback()}
+function renderFeedback(){
+const pos=D.feedback.filter(f=>f.sentiment==='Positive').length,neu=D.feedback.filter(f=>f.sentiment==='Neutral').length,neg=D.feedback.filter(f=>f.sentiment==='Negative').length;
+document.getElementById('fbStats').innerHTML=[['Positive',pos,'text-emerald-700','bg-emerald-500'],['Neutral',neu,'text-stone-600','bg-stone-400'],['Negative',neg,'text-red-600','bg-red-500'],['Avg. rating',(D.feedback.reduce((s,f)=>s+f.rating,0)/D.feedback.length).toFixed(1)+' / 5','text-brand-800','bg-brand-500']]
+.map(([l,v,c,dot])=>`<div class="p-4 rounded-xl hover:bg-stone-50 transition"><p class="text-[10.5px] font-medium text-stone-400 uppercase tracking-wide flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full ${dot}"></span>${l}</p><p class="mt-1.5 text-[26px] leading-none font-semibold tnum tracking-tight ${c}">${v}</p></div>`).join('');
+const chips=[['all','All'],['Positive','Positive'],['Neutral','Neutral'],['Negative','Negative']];
+document.getElementById('fbChips').innerHTML=chips.map(([v,l])=>`<button onclick="fbFilterSet('${v}')" class="text-[11px] font-medium px-2.5 py-1 rounded-full transition ${fbF===v?'bg-stone-800 text-white':'bg-white border border-stone-200 text-stone-500 hover:border-stone-300'}">${l}</button>`).join('');
+const list=D.feedback.filter(f=>fbF==='all'||f.sentiment===fbF);
+document.getElementById('fbList').innerHTML=list.map(f=>{
+const sc=f.sentiment==='Positive'?'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200':f.sentiment==='Neutral'?'bg-stone-100 text-stone-600 ring-1 ring-stone-200':'bg-red-50 text-red-700 ring-1 ring-red-200';
+return `<div class="card card-hover p-4">
+<div class="flex items-start gap-3">
+<span class="w-9 h-9 rounded-full grid place-items-center text-[11px] font-semibold shrink-0 ${AV_COLORS[f.name.length%5]}">${f.name.split(' ').map(x=>x[0]).join('')}</span>
+<div class="min-w-0 flex-1">
+<div class="flex items-center justify-between gap-2"><p class="text-[13px] font-medium">${f.name}</p><span class="font-mono text-[9.5px] text-stone-400 shrink-0">${f.date} · ${f.booth}</span></div>
+<p class="text-[10.5px] text-stone-400">${f.ward}</p>
+<p class="text-[12.5px] text-stone-600 leading-relaxed mt-2">“${f.text}”</p>
+<div class="mt-2.5 flex items-center gap-2 flex-wrap">
+<span class="text-[9.5px] font-semibold px-2 py-0.5 rounded-full ${sc}">${f.sentiment}</span>
+<span class="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-stone-50 border border-stone-100 text-stone-500">${f.cat}</span>
+<span class="flex gap-0.5">${Array.from({length:5},(_,i)=>`<i data-lucide="star" class="w-3 h-3 ${i<f.rating?'text-amber-400 fill-amber-400':'text-stone-200'}"></i>`).join('')}</span>
+<button onclick="showToast('Response queued to ${f.name.split(' ')[0]} — assigned to helpline desk','message-square')" class="ml-auto text-[11px] font-medium text-brand-700 hover:underline">Acknowledge →</button>
+</div></div></div></div>`}).join('');
+}
+
+/* ═══════════════════ REPORTS & EXPORT ═══════════════════ */
+const REPORTS=[
+['infra','Infrastructure Summary','Open water, road, power, drainage and sanitation counts for every booth.','file-text'],
+['services','Public Services','Participation, satisfaction and resolution performance by booth.','activity'],
+['schemes','Scheme Coverage','Enrolment and delivery status across all six flagship schemes.','landmark'],
+['feedback','Citizen Feedback','Full feedback register with sentiment and ratings.','message-square'],
+['volunteers','Volunteer Activities','Worker directory with 30-day task performance.','users']];
+function reportDataset(k){
+if(k==='infra')return {t:'Infrastructure Summary',h:['Booth','Ward','Water','Road','Power','Drainage','Sanitation'],r:D.booths.map(b=>{const o=c=>D.issues.filter(i=>i.booth===b.id&&i.cat===c&&i.status!=='Resolved').length;return [b.id+' — '+b.venue,b.wardName,o('Water'),o('Road'),o('Power'),o('Drainage'),o('Sanitation')]})};
+if(k==='services')return {t:'Public Services',h:['Booth','Ward','Open issues','Resolved','Participation %','Satisfaction'],r:D.booths.map(b=>{const iss=D.issues.filter(i=>i.booth===b.id);return [b.id+' — '+b.venue,b.wardName,iss.filter(i=>i.status!=='Resolved').length,iss.filter(i=>i.status==='Resolved').length,b.part+'%',b.sat.toFixed(1)]})};
+if(k==='schemes')return {t:'Scheme Coverage',h:['Scheme','Coverage %','Target'],r:SCHEMES.map((s,i)=>[s.n,[74,68,71,58,82,63][i]+'%',s.target])};
+if(k==='feedback')return {t:'Citizen Feedback',h:['Date','Citizen','Ward','Category','Sentiment','Rating','Feedback'],r:D.feedback.map(f=>[f.date,f.name,f.ward,f.cat,f.sentiment,f.rating+'/5',f.text])};
+if(k==='volunteers')return {t:'Volunteer Activities',h:['Worker','Ward','Role','Tasks done','Pending','Calls','Status'],r:D.workers.map(w=>[w.name,w.ward,w.role,w.tasks,w.pending,w.calls,w.active?'Active today':'Inactive'])};
+return {t:'Monthly Constituency Report',h:['Metric','Value'],r:[['Constituency',CURRENT.name],['Population',fmtN(D.pop)],['Registered electors',fmtN(D.electors)],['Polling booths',D.booths.length],['Strong / Competitive / Needs attention',D.strong+' / '+D.comp+' / '+D.weak],['Open citizen issues',D.openIssues.length],['Resolved this month',D.resolved30.length],['Average worker coverage',D.covAvg+'%'],['Average citizen satisfaction',D.satAvg+' / 5'],['Constituency health score',D.healthScore+' / 100'],['Winning readiness index (planning indicator)',D.readiness+' / 100']]};
+}
+function exportReport(k,fmt){const d=reportDataset(k),name=CURRENT.name.replace(/ /g,'-')+'-'+d.t.replace(/ /g,'-');
+if(fmt==='excel')downloadCSV(name+'.csv',d.h,d.r);
+else printReport(d.t,CURRENT.name+' · generated '+new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}),d.h,d.r)}
+function downloadCSV(name,headers,rows){const csv=[headers.join(','),...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(["\ufeff"+csv],{type:'text/csv'}));a.download=name;a.click();URL.revokeObjectURL(a.href);
+showToast(name+' downloaded','file-spreadsheet')}
+function printReport(title,meta,headers,rows){
+const w=window.open('','_blank','width=920,height=680');
+if(!w){showToast('Please allow pop-ups to generate the PDF','alert-circle');return}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+w.document.write(`<!DOCTYPE html><html><head><title>${esc(title)}</title><style>
+body{font-family:'Segoe UI',Arial,sans-serif;margin:36px;color:#1c1917}
+.brand{color:#1f6448;font-weight:700;letter-spacing:.1em;font-size:10px;text-transform:uppercase}
+h1{font-size:21px;margin:6px 0 2px}.meta{color:#78716c;font-size:11.5px;margin-bottom:22px}
+table{width:100%;border-collapse:collapse;font-size:11.5px}th{background:#1f6448;color:#fff;text-align:left;padding:8px 9px;font-weight:600}
+td{padding:7px 9px;border-bottom:1px solid #e7e5e4;vertical-align:top}
+tr:nth-child(even) td{background:#fafaf9}.foot{margin-top:22px;color:#a8a29e;font-size:10px}</style></head><body>
+<div class="brand">JanSetu · Constituency Intelligence</div><h1>${esc(title)}</h1><div class="meta">${esc(meta)}</div>
+<table><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead>
+<tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>
+<p class="foot">Prototype document — all figures are demo data generated locally. Operational planning aid; not an outcome forecast.</p>
+<script>setTimeout(function(){window.print()},450)<\/script></body></html>`);
+w.document.close()}
+function exportBoothPDF(){if(!window._drawerBooth)return;const b=window._drawerBooth;
+printReport('Booth Brief · '+b.id,CURRENT.name+' · '+b.venue+', '+b.wardName,
+['Field','Value'],[['Registered voters',fmtN(b.voters)],['Population',fmtN(b.pop)],['Status',STATUS_META[b.status][0]],['Health score',b.health+'/100'],['Volunteer coverage',b.cov+'%'],['Open issues',b.issuesOpen],['Satisfaction',b.sat.toFixed(1)+' / 5'],['Historical participation',b.part+'%']])}
+function renderReports(){
+document.getElementById('repPeriod').textContent=new Date().toLocaleString('en-IN',{month:'long',year:'numeric'}).toUpperCase();
+document.getElementById('reportList').innerHTML=REPORTS.map(([k,t,d,ic])=>`
+<div class="flex flex-wrap items-center gap-4 p-5 hover:bg-stone-50/70 transition">
+<span class="w-10 h-10 rounded-xl bg-stone-100 grid place-items-center shrink-0"><i data-lucide="${ic}" class="w-5 h-5 text-stone-500"></i></span>
+<div class="min-w-0 flex-1"><p class="text-[13.5px] font-semibold">${t}</p><p class="text-[11.5px] text-stone-400 mt-0.5">${d}</p></div>
+<span class="font-mono text-[10px] text-stone-400 hidden md:block">${daysAgo(ri(2,9))}</span>
+<div class="flex gap-2">
+<button onclick="exportReport('${k}','pdf')" class="flex items-center gap-1.5 h-8.5 h-9 px-3 rounded-lg border border-stone-200 text-[12px] font-medium hover:border-stone-300 hover:bg-white transition"><i data-lucide="printer" class="w-3.5 h-3.5 text-stone-400"></i>PDF</button>
+<button onclick="exportReport('${k}','excel')" class="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-stone-200 text-[12px] font-medium hover:border-stone-300 hover:bg-white transition"><i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-stone-400"></i>Excel</button>
+</div></div>`).join('');
+}
+
+/* ═══════════════════ BOOTH DRAWER ═══════════════════ */
+function openBooth(id){
+const b=B(id);window._drawerBooth=b;APP.drawerOpen=true;document.documentElement.classList.add('overflow-hidden');
+const [sl,sc]=STATUS_META[b.status];
+const openByCat=c=>D.issues.filter(i=>i.booth===b.id&&i.cat===c&&i.status!=='Resolved').length;
+const hh=b.demo.households,gen=[b.demo.male,100-b.demo.male];
+const sparks=sparkSVG(b.spark);
+const fb=D.feedback.filter(f=>f.booth===b.id).slice(0,2);
+const fbUse=fb.length?fb:D.feedback.slice(0,2);
+const actions=[];
+if(b.cov<50)actions.push('Recruit ~'+Math.ceil((50-b.cov)/8)+' more volunteers for booth '+b.id);
+if(b.issuesOpen>7)actions.push('Schedule a redressal camp with Municipal Corp & PWD');
+if(b.sat<3.8)actions.push('Run a door-to-door feedback round (200 households)');
+if(b.part<55)actions.push('Add to priority outreach list for the next drive');
+if(!actions.length)actions.push('Maintain weekly review cadence; share booth best practices');
+actions.push('Verify updated voter register before month end');
+document.getElementById('drawerBody').innerHTML=`
+<div class="sticky top-0 bg-white/90 backdrop-blur border-b border-stone-100 px-5 py-4 flex items-start justify-between gap-3 z-10">
+<div class="min-w-0">
+<div class="flex items-center gap-2"><span class="font-mono text-[10px] text-stone-400">${b.id} · WARD ${b.ward.no}</span>
+<span class="text-[10px] font-medium px-2 py-0.5 rounded-full ${sc}">${sl}</span></div>
+<h2 class="text-[16px] font-semibold mt-1 leading-tight">${b.venue}</h2>
+<p class="text-[11.5px] text-stone-400">${b.wardName} · ${CURRENT.name}</p>
+</div>
+<button onclick="APP.closeDrawer()" class="p-2 rounded-lg hover:bg-stone-100 shrink-0"><i data-lucide="x" class="w-5 h-5 text-stone-500"></i></button>
+</div>
+<div class="p-5 space-y-6">
+<div class="grid grid-cols-4 gap-2.5">
+${[['Electors',fmtN(b.voters)],['Population',fmtN(b.pop)],['Open issues',b.issuesOpen],['Coverage',b.cov+'%']].map(([l,v])=>`<div class="rounded-xl bg-stone-50 border border-stone-100 p-2.5 text-center"><p class="text-[9.5px] font-mono text-stone-400 uppercase">${l}</p><p class="text-[14px] font-semibold mt-1 tnum">${v}</p></div>`).join('')}
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Demographics · aggregated</h3>
+<div class="rounded-xl border border-stone-100 p-4 space-y-3">
+<div class="grid grid-cols-3 gap-3 text-center">
+<div><p class="text-[15px] font-semibold tnum">${fmtN(hh)}</p><p class="text-[10px] text-stone-400">households</p></div>
+<div><p class="text-[15px] font-semibold tnum">${b.demo.literacy}%</p><p class="text-[10px] text-stone-400">literacy</p></div>
+<div><p class="text-[15px] font-semibold tnum">${b.part}%</p><p class="text-[10px] text-stone-400">participation (hist.)</p></div></div>
+<div class="flex h-2 rounded-full overflow-hidden"><div class="bg-brand-600" style="width:${gen[0]}%"></div><div class="bg-brand-200" style="width:${gen[1]}%"></div></div>
+<div class="flex justify-between text-[10.5px] text-stone-400 font-mono"><span>MALE ${gen[0]}%</span><span>FEMALE ${gen[1]}%</span></div>
+<div class="space-y-1.5 pt-1">${['0–18 yrs','19–35 yrs','36–60 yrs','60+ yrs'].map((l,i)=>`<div class="flex items-center gap-2"><span class="text-[10.5px] text-stone-500 w-16">${l}</span><div class="flex-1 h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full bg-brand-400" style="width:${b.demo.age[i]*2.6}%"></div></div></div>`).join('')}</div>
+</div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Infrastructure issues · open by service</h3>
+<div class="grid grid-cols-2 gap-2">${INFRA.map(([l,ic,cat])=>{const n=openByCat(cat);const st=n===0?['Good','bg-emerald-50 text-emerald-700']:n<3?['Watch','bg-amber-50 text-amber-700']:['Critical','bg-red-50 text-red-700'];
+return `<div class="flex items-center gap-2.5 rounded-xl border border-stone-100 p-2.5"><span class="w-8 h-8 rounded-lg bg-stone-50 grid place-items-center shrink-0"><i data-lucide="${ic}" class="w-4 h-4 text-stone-500"></i></span>
+<div class="min-w-0"><p class="text-[11.5px] font-medium truncate">${l}</p><p class="text-[10px] font-mono ${st[1].split(' ')[1]}">${n===0?'No open issues':n+' open · '+st[0]}</p></div></div>`}).join('')}</div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Government scheme coverage</h3>
+<div class="rounded-xl border border-stone-100 p-4 space-y-2.5">${b.schemes.map(s=>`<div><div class="flex justify-between text-[11.5px] mb-1"><span class="text-stone-600 font-medium">${s.n}</span><span class="font-mono text-stone-500">${s.pc}%</span></div><div class="h-1.5 rounded-full bg-stone-100"><div class="h-full rounded-full ${s.pc>=60?'bg-brand-600':'bg-amber-500'}" style="width:${s.pc}%"></div></div></div>`).join('')}</div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Volunteer activity</h3>
+<div class="rounded-xl border border-stone-100 p-4 flex items-center gap-4">
+<div>${sparks}<p class="text-[9.5px] font-mono text-stone-400 mt-1 text-center">LAST 12 WEEKS</p></div>
+<div class="text-[11.5px] space-y-1">
+<p><span class="font-semibold text-brand-800 tnum">${b.cov}%</span> <span class="text-stone-500">coverage</span></p>
+<p class="text-stone-500">Key volunteers:</p>
+${b.topVols.map(v=>`<p class="font-medium text-stone-700">· ${v}</p>`).join('')}
+</div></div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Recent citizen feedback</h3>
+<div class="space-y-2">${fbUse.map(f=>`<div class="rounded-xl border border-stone-100 p-3"><div class="flex justify-between text-[10px] text-stone-400 font-mono"><span>${f.name} · ${f.ward}</span><span>${f.date}</span></div>
+<p class="text-[12px] text-stone-600 mt-1 leading-relaxed">“${f.text}”</p>
+<span class="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded ${f.sentiment==='Positive'?'bg-emerald-50 text-emerald-700':f.sentiment==='Neutral'?'bg-stone-100 text-stone-500':'bg-red-50 text-red-600'}">${f.sentiment}</span></div>`).join('')}</div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Recent public meetings</h3>
+<div class="space-y-2">${b.meetings.map(m=>`<div class="flex items-center gap-3 rounded-xl border border-stone-100 p-3"><span class="w-8 h-8 rounded-lg bg-brand-50 grid place-items-center shrink-0"><i data-lucide="calendar" class="w-4 h-4 text-brand-700"></i></span>
+<div class="flex-1"><p class="text-[12px] font-medium">${m.t}</p><p class="text-[10px] text-stone-400 font-mono">${m.d}</p></div>
+<span class="font-mono text-[11px] text-stone-500">${m.a}% att.</span></div>`).join('')}</div>
+</div>
+<div>
+<h3 class="text-[12px] font-semibold uppercase tracking-wide text-stone-400 mb-2.5">Suggested follow-up actions</h3>
+<div class="rounded-xl bg-cream border border-[#ece5d4] p-4 space-y-2" id="actionList">
+${actions.slice(0,4).map((a,i)=>`<label class="flex items-start gap-2.5 cursor-pointer"><input type="checkbox" class="act-check mt-0.5 act-cb" onchange="updActions()"><span class="text-[12px] leading-snug text-stone-600">${a}</span></label>`).join('')}
+<p id="actionProg" class="text-[10px] font-mono text-stone-400 pt-1">0 of ${Math.min(4,actions.length)} completed</p>
+</div>
+</div>
+</div>`;
+}
+function updActions(){const cbs=document.querySelectorAll('.act-cb');let n=0;cbs.forEach(c=>{c.checked&&n++});
+const p=document.getElementById('actionProg');if(p)p.textContent=n+' of '+cbs.length+' completed'}
+
+/* ═══════════════════ GLOBAL SEARCH ═══════════════════ */
+function searchPick(t,id){APP.closeSearch();
+if(t==='booth')openBooth(id);
+else if(t==='worker'){go('workers');showToast('Showing worker directory — search: '+id,'users')}
+else if(t==='issue'){go('issues');showToast('Issue '+id+' highlighted on the board','alert-circle')}
+else{go('wards');showToast('Ward analytics — '+id,'building-2')}}
+function doSearch(q){q=q.trim().toLowerCase();
+const drops=[document.getElementById('searchDropDesk'),document.getElementById('searchDropMob')];
+if(q.length<2){drops.forEach(d=>{d.classList.add('hidden');d.innerHTML=''});return}
+const booths=D.booths.filter(b=>(b.venue+' '+b.id+' '+b.wardName).toLowerCase().includes(q)).slice(0,3);
+const issues=D.issues.filter(i=>(i.title+' '+i.id).toLowerCase().includes(q)).slice(0,3);
+const workers=D.workers.filter(w=>w.name.toLowerCase().includes(q)).slice(0,3);
+const wards=D.wardStats.filter(w=>w.name.toLowerCase().includes(q)).slice(0,2);
+const grp=(label,items)=>items.length?`<p class="px-2.5 pt-2 pb-1 text-[9.5px] font-mono tracking-widest text-stone-400">${label}</p>`+items.join(''):'';
+const html=grp('BOOTHS',booths.map(b=>`<button onclick="searchPick('booth','${b.id}')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-left"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-stone-300"></i><span class="min-w-0"><span class="block text-[12.5px] font-medium truncate">${b.venue}</span><span class="block font-mono text-[9.5px] text-stone-400">${b.id} · ${b.wardName}</span></span></button>`).join(''))
++grp('ISSUES',issues.map(i=>`<button onclick="searchPick('issue','${i.id}')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-left"><i data-lucide="alert-circle" class="w-3.5 h-3.5 text-stone-300"></i><span class="min-w-0"><span class="block text-[12.5px] font-medium truncate">${i.title}</span><span class="block font-mono text-[9.5px] text-stone-400">${i.id} · ${i.status}</span></span></button>`).join(''))
++grp('WORKERS',workers.map(w=>`<button onclick="searchPick('worker','${w.name}')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-left"><i data-lucide="users" class="w-3.5 h-3.5 text-stone-300"></i><span class="min-w-0"><span class="block text-[12.5px] font-medium">${w.name}</span><span class="block text-[9.5px] text-stone-400">${w.role} · ${w.ward}</span></span></button>`).join(''))
++grp('WARDS',wards.map(w=>`<button onclick="searchPick('ward','${w.name}')" class="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-stone-50 text-left"><i data-lucide="building-2" class="w-3.5 h-3.5 text-stone-300"></i><span class="text-[12.5px] font-medium">Ward ${w.no} — ${w.name}</span></button>`).join(''));
+const final=html||'<p class="px-3 py-6 text-center text-[12px] text-stone-400">No matches found.</p>';
+drops.forEach(d=>{d.classList.remove('hidden');d.innerHTML=final})}
+function regenData(){NONCE++;regenerate()}
+
+/* ═══════════════════ ALPINE APP SHELL ═══════════════════ */
+function app(){return{
+view:'dashboard',sidebarCollapsed:false,mobileOpen:false,drawerOpen:false,mobSearchOpen:false,
+notifOpen:false,profileOpen:false,constOpen:false,notifCount:3,
+notifs:NOTIFS,constituencies:CONSTITUENCIES,constSel:0,toasts:[],tSeq:0,
+settings:{compact:false,reduceMotion:false,n1:true,n2:true,n3:false},
+init(){APP=this;window.APP=this;
+const h=new Date().getHours();document.getElementById('heroGreet').textContent=h<12?'Good morning,':h<17?'Good afternoon,':'Good evening,';
+buildNavs();regenerate();
+this.go('dashboard');
+this.clock();setInterval(()=>this.clock(),1000);
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();const s=document.getElementById('gSearch');s&&s.focus()}
+if(e.key==='Escape'){this.drawerOpen=false;this.notifOpen=false;this.profileOpen=false;this.constOpen=false;this.mobileOpen=false;this.closeSearch();document.documentElement.classList.remove('overflow-hidden')}});
+this.$watch('settings.compact',v=>document.documentElement.classList.toggle('compact',v));
+this.$watch('settings.reduceMotion',v=>document.documentElement.classList.toggle('reduce-motion',v));
+lucide.createIcons()},
+clock(){const n=new Date();
+document.getElementById('navClock').textContent=n.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit',hour12:true});
+document.getElementById('navDate').textContent=n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+document.getElementById('heroDate').textContent=n.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})},
+go(v){this.view=v;this.mobileOpen=false;updateNav();
+document.querySelectorAll('.view').forEach(s=>s.classList.add('hidden'));
+const t=document.getElementById('view-'+v);t.classList.remove('hidden');
+t.classList.remove('view-anim');void t.offsetWidth;t.classList.add('view-anim');
+if(!RENDERED[v]){RENDERED[v]=true;({dashboard:renderDashboard,constituency:renderConstituency,booths:renderBooths,wards:renderWards,issues:renderKanban,workers:renderWorkers,campaign:renderCampaign,schemes:renderSchemes,feedback:renderFeedback,reports:renderReports,settings:null}[v]||(()=>{}))()}
+window.scrollTo({top:0,behavior:'smooth'})},
+showToast(msg,icon='check-circle'){const id=++this.tSeq;this.toasts.push({id,msg,icon});
+setTimeout(()=>{this.toasts=this.toasts.filter(t=>t.id!==id)},3400)},
+markAllRead(){this.notifs=this.notifs.map(n=>({...n,u:0}));this.notifCount=0;this.showToast('All notifications marked as read')},
+pickConst(i){this.constSel=i;this.constOpen=false;this.drawerOpen=false;
+CURRENT=CONSTITUENCIES[i];NONCE+=7;regenerate();
+document.getElementById('constLabel').textContent=CURRENT.name;
+this.showToast('Now viewing '+CURRENT.name+' — demo dataset regenerated','map-pin')},
+closeSearch(){const q=document.getElementById('gSearch');if(q)q.value='';
+[document.getElementById('searchDropDesk'),document.getElementById('searchDropMob')].forEach(d=>{if(d){d.classList.add('hidden');d.innerHTML=''}})},
+closeDrawer(){this.drawerOpen=false;document.documentElement.classList.remove('overflow-hidden')}
+}}
+
+function regenerate(){
+destroyCharts();RENDERED={};APP.closeDrawer&&APP.closeDrawer();
+generateData();
+document.getElementById('heroConstTop').textContent=CURRENT.name.toUpperCase();
+document.getElementById('constLabel').textContent=CURRENT.name;
+updateNav();
+/* re-render current view even if cached */
+const fn={dashboard:renderDashboard,constituency:renderConstituency,booths:renderBooths,wards:renderWards,issues:renderKanban,workers:renderWorkers,campaign:renderCampaign,schemes:renderSchemes,feedback:renderFeedback,reports:renderReports}[APP.view];
+if(fn)fn();
+lucide.createIcons();
+}
+
+/* initial icons for static markup (before Alpine takes over) */
+document.addEventListener('DOMContentLoaded',()=>{try{lucide.createIcons()}catch(e){}});
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</body>
+</html>
